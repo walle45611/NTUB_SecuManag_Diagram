@@ -11,11 +11,14 @@ Backend ->> Database: 讀取 asset_setting、變數與自訂欄位設定
 Backend -->> Frontend: 回傳設定資料
 Frontend ->> Frontend: 顯示編輯表單 (名稱、描述、策略值、公式編輯器...)
 User ->> Frontend: 修改並點擊「保存」
-
 Backend ->> Approval: POST /api/system/asset-setting/update-asset-setting/
+Backend ->> Database: 寫入 asset_setting 資料 (is_current = false)
 Approval-->>Backend: approval_completed  （收到核准結果）
 
+
 Backend ->> Database: 更新 asset_setting 設定資料
+Backend ->> Database: 讀取 asset_setting 資料 (is_current = true)
+
 Backend ->> Service: 觸發重新計算風險 (所有資產)
 Service ->> Database: 更新 risk_result 資料表
 Backend -->> Frontend: 回傳更新結果
