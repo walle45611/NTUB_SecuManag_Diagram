@@ -1,0 +1,13 @@
+@startuml
+actor User as "使用者"
+participant Frontend
+participant Backend
+participant Database
+
+User ->> Frontend: 點擊「風險」按鈕
+Frontend ->> Backend: GET /api/isms/risk/{asset_id}/summary
+Backend ->> Database: 讀取最新風險值
+Backend ->> Backend: 判斷風險等級 (High/Medium/Low)
+Backend -->> Frontend: 回傳風險值 + 風險等級
+Frontend ->> Frontend: 套用紅/橘/綠顏色顯示於力導圖
+@enduml

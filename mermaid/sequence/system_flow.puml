@@ -1,0 +1,11 @@
+@startuml
+start
+:開始;
+if (是否通過審核?) then (是)
+  :發布公告;
+  :結束;
+else (否)
+  :退回修改;
+  -right-> if (是否通過審核?)
+endif
+@enduml
