@@ -4,13 +4,15 @@ participant Frontend
 participant Backend
 participant Database
 
-User ->> Frontend: 開啟資產一覽表頁面
-Frontend ->> Backend: GET /api/system/asset-settings/custom-fields
-Backend ->> Database: 讀取自訂欄位設定
-Backend -->> Frontend: 回傳欄位清單
-Frontend ->> Frontend: 動態生成 Table 欄位
-Frontend ->> Backend: GET /api/system/assets
-Backend ->> Database: 撈取資產資料及自訂欄位值
-Backend -->> Frontend: 回傳資產列表 (含自訂欄位)
-Frontend ->> Frontend: 顯示資產列表於動態欄位表格
+User->>Frontend: 開啟資產一覽表頁面
+Frontend->>Backend: GET /api/isms/asset-settings/custom-fields
+Backend->>Database: 讀取自訂欄位設定
+Backend-->>Frontend: 回傳欄位清單
+
+Frontend->>Frontend: 動態生成 Table 欄位
+
+Frontend->>Backend: GET /api/system/asset/
+Backend->>Database: 撈取資產資料及自訂欄位值
+Backend-->>Frontend: 回傳資產列表 (含自訂欄位)
+Frontend->>Frontend: 顯示資產列表於動態欄位表格
 @enduml
