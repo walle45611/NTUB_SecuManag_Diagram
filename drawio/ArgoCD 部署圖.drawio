@@ -1,0 +1,77 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36" version="26.2.14">
+  <diagram name="第 1 页" id="j3caezr_NOUJkOHHyfsa">
+    <mxGraphModel dx="8330" dy="4855" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-7" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="-990" y="-1044" width="3774" height="1594" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;jumpSize=8;strokeWidth=10;startArrow=classic;startFill=1;" edge="1" parent="1" source="FFX_t_lz-Yf2fpsXqPLJ-1" target="FFX_t_lz-Yf2fpsXqPLJ-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-19" value="&lt;span style=&quot;font-size: 55px;&quot;&gt;Pull Image&lt;/span&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="FFX_t_lz-Yf2fpsXqPLJ-6">
+          <mxGeometry x="0.0714" y="-7" relative="1" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-1" value="ArgoCD" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://argo-cd.readthedocs.io/en/stable/assets/logo.png;fontSize=55;" vertex="1" parent="1">
+          <mxGeometry x="-843.0033333333331" y="-825.0033333333332" width="268" height="268" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=25;strokeWidth=10;" edge="1" parent="1" source="FFX_t_lz-Yf2fpsXqPLJ-2" target="FFX_t_lz-Yf2fpsXqPLJ-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-18" value="&lt;font style=&quot;font-size: 55px;&quot;&gt;Check if there is a new Image&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="FFX_t_lz-Yf2fpsXqPLJ-5">
+          <mxGeometry x="0.0917" y="14" relative="1" as="geometry">
+            <mxPoint y="2" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-2" value="AargoCD Image Updater" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=data:image/png,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAYFBMVEVHcEw+PDwvLS0tKysiHx8kISEbGBg+PDwbGRklIiIjISErKCgxLy9hYWHQz8////+NjIy7urqjoqLw8PA5ODg9OztBQEBBPz9KSUlWVlZRUFBXV1dZWVlVVVVaWVlfXl4ATt3eAAAAIHRSTlMAHD6RxePzDv98/////v////////+6/9v/iP//0+s8uZK+6VoAAAFiSURBVHgBdZMHgoMwDARFC6Y3YdxC/v/Lk8WBUsd9d+kYhCTN8uJ2K/IsTeCTMivURZGV73ZVK1VfhaheIznJb+QgpIXoQpHCCflNfaDUU+K8ft6c1G3XtfW1zEuIVOKrfhh61VxUfAJZq3EgxivRNvEUWXuhphiYlCgZQJLLsulioGtEyRNIz6OVokeZl2WmgRYsYptCRj1iq+ju5i5a9CRzPyyKVIzXWOOIqBY6+dJj0+iep4plXGFDhgPEOB7jUiOzgUampoAgAQ364DPAMgW22GvdvAcazWyw8vgzsEKmjabavgdaEsnIIDWENp8Bw6SQbGQbg1O/PNn9hOxvCYA1jEZ088Lu7BC1YWz83MaZ/6o9fc7J67hwLJVAWCfocdROsBApgxPoMCGUcHD33jsqEXc25+9wslPidLnj8b6DEPwHAZ4pLYsdNx7sx+60IVpdF1sg+5Nkt49A5sPuiah/6MU2vorwU8MAAAAASUVORK5CYII=;fontSize=55;" vertex="1" parent="1">
+          <mxGeometry x="51" y="-812" width="242" height="242" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-4" value="GitHub Packages" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png;fontSize=55;" vertex="1" parent="1">
+          <mxGeometry x="1" y="-56" width="338" height="338" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=14;strokeWidth=10;" edge="1" parent="1" source="FFX_t_lz-Yf2fpsXqPLJ-9" target="FFX_t_lz-Yf2fpsXqPLJ-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-22" value="&lt;font style=&quot;font-size: 55px;&quot;&gt;Push Code&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="FFX_t_lz-Yf2fpsXqPLJ-11">
+          <mxGeometry x="-0.0768" y="18" relative="1" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=10;" edge="1" parent="1" source="FFX_t_lz-Yf2fpsXqPLJ-10" target="FFX_t_lz-Yf2fpsXqPLJ-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-17" value="&lt;font style=&quot;font-size: 50px;&quot;&gt;Push to develop branch&lt;/font&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="FFX_t_lz-Yf2fpsXqPLJ-13">
+          <mxGeometry x="-0.004" y="12" relative="1" as="geometry">
+            <mxPoint x="2" y="2" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-10" value="GitHub Repository" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png;fontSize=55;" vertex="1" parent="1">
+          <mxGeometry x="1408" y="-849" width="302" height="302" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=10;" edge="1" parent="1" source="FFX_t_lz-Yf2fpsXqPLJ-12" target="FFX_t_lz-Yf2fpsXqPLJ-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-15" value="&lt;span style=&quot;font-size: 55px;&quot;&gt;Push Image&lt;/span&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="FFX_t_lz-Yf2fpsXqPLJ-14">
+          <mxGeometry x="0.0956" y="3" relative="1" as="geometry">
+            <mxPoint x="56" y="-3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-12" value="GitHub Actions" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVKKLthRYd2YI2ko29ZYzwpZV7fnpu3G2N8kBlcb0Xw9ALEbD7EZo_OlE3F_JeyyyvalA&amp;usqp=CAU;fontSize=55;" vertex="1" parent="1">
+          <mxGeometry x="1211" y="-55" width="692.09" height="356" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-21" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="2378" y="-857" width="240" height="382" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-9" value="" style="shape=actor;whiteSpace=wrap;html=1;fontSize=24;strokeWidth=11;align=center;" vertex="1" parent="FFX_t_lz-Yf2fpsXqPLJ-21">
+          <mxGeometry width="240" height="304" as="geometry" />
+        </mxCell>
+        <mxCell id="FFX_t_lz-Yf2fpsXqPLJ-20" value="&lt;font style=&quot;font-size: 55px;&quot;&gt;Develop&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="FFX_t_lz-Yf2fpsXqPLJ-21">
+          <mxGeometry x="10" y="304" width="220" height="78" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
