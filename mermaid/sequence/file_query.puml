@@ -5,10 +5,10 @@ participant Backend
 participant Database
 participant MinIO
 
-User ->> Frontend: 點擊文件預覽
-Frontend ->> Backend: GET /api/files/{file_id}/url
-Backend ->> Database: 取得文件記錄與檔案 key
-Backend ->> MinIO: 產生預簽名 URL
-Backend -->> Frontend: 回傳 URL
-Frontend ->> Frontend: 開啟 URL
+User->>Frontend: 點擊文件預覽
+Frontend->>Backend: GET /api/system/document/{document_id}
+Backend->>Database: 取得 Record & uploadfile_entity_id
+Backend->>MinIO: 生成預簽名 URL
+Backend-->>Frontend: 回傳 URL
+Frontend->>Frontend: 開啟 URL
 @enduml
