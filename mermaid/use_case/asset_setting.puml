@@ -1,0 +1,22 @@
+@startuml
+
+left to right direction
+
+actor 使用者
+
+package "資產設定" {
+    usecase "輸入資產名稱與描述" as UC1
+    usecase "設定風險等級值（高／中／低）" as UC2
+    usecase "根據設定公式自動計算風險值" as UC3
+    usecase "自訂與拖移風險計算公式" as UC4
+    usecase "新增／編輯額外資產屬性" as UC5
+    usecase "儲存或更新設定（點擊編輯按鈕）" as UC6
+}
+
+使用者 --> UC1
+使用者 --> UC2
+使用者 --> UC3
+使用者 --> UC4
+使用者 --> UC5
+使用者 --> UC6
+@enduml
