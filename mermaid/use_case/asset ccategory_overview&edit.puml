@@ -1,4 +1,4 @@
-@startuml
+@startuml asset_category_overview
 
 left to right direction
 
@@ -12,18 +12,15 @@ package "資產分類一覽表" {
 }
 
 package "修改資產分類" {
-    usecase "顯示資產分類條目" as UC5
-    usecase "修改資產分類資料" as UC6
-    usecase "刪除資產分類資料" as UC7
-    usecase "搜尋資產分類資料" as UC8
-    usecase "＋新增資產分類" as UC9
-    usecase "＋匯入資產分類" as UC10
-    usecase "自動記錄建立時間" as UC11
+    usecase "修改分類資料" as UC4
+    usecase "刪除分類資料" as UC5
+    usecase "＋新增資產類別" as UC6
+    usecase "＋匯入資產類別" as UC7
+    usecase "手動核准項目" as UC8
+    usecase "匯入資產類別後自動創建核准項目" as UC9
 }
 
-UC6 .down.> UC11 : <<include>>
-UC9 .down.> UC11 : <<include>>
-UC10 .down.> UC11 : <<include>>
+UC7 .down.> UC9 : <<include>>
 
 使用者 --> UC1
 使用者 --> UC2
@@ -32,8 +29,5 @@ UC10 .down.> UC11 : <<include>>
 使用者 --> UC5
 使用者 --> UC6
 使用者 --> UC7
-使用者 --> UC8
-使用者 --> UC9
-使用者 --> UC10
 
 @enduml
