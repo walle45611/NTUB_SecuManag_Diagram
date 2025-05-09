@@ -1,40 +1,36 @@
 @startuml
-title 系統部署圖
+node "Browser" 
 
-node "使用者端 (Browser／Client)" as User
-node "Kubernetes Cluster" as K8s {
-  [Ingress Controller\n(ingress-nginx)] as Ingress
-  [Frontend] as FE
-  component "Backend\nntub-secumanage" as BE
-  component "Consumer" as Consumer
-  component "AI Module" as AIModule
-  component "RAG Query" as RAG
-  component "Embedding Service" as Embed
+node "Kubernetes Cluster" <<Cluster>> {
+  package "Ingress-Controller Namespace" <<Namespace>> {
+    node "ingress-nginx" <<Pod>> as IngressController {
+      component "nginx Ingress Controller"
+    }
+  }
+  package "ntub-secumanage Namespace" <<Namespace>> {
+    node "frontend-pod" <<Pod>> as FE {
+      component "nginx"
+      artifact "dist/\n(static files)"
+    }
+    node "backend-pod" <<Pod>> as BE {
+      component "Python App"
+    }
+    node "postgresql-pod" <<Pod>> as DB {
+      database "PostgreSQL\n(TCP:5432)"
+    }
+    node "minio-pod" <<Pod>> as S3 {
+      storage "MinIO\n(S3 API)"
+    }
+    node "rabbitmq-pod" <<Pod>> as RMQ {
+      component "RabbitMQ\n(AMQP)"
+    }
+  }
 }
 
-node "資料庫伺服器" as DB {
-  database "PostgreSQL\n(TCP:5432)" as Database
-}
-
-node "物件儲存伺服器" as OSS {
-  artifact "Object Storage\n(S3 API)" as Storage
-}
-
-node "消息佇列" as MQ {
-  queue "Notify Queue\n(AMQP)" as NotifyQ
-}
-
-' 流程連線
-User       --> Ingress    : HTTP/HTTPS
-Ingress    --> FE         : HTTP/HTTPS
-Ingress    --> BE         : HTTP/HTTPS
-FE         --> BE         : Call API
-BE         --> Database   : TCP:5432
-BE         --> Storage    : S3 API
-BE         --> NotifyQ    : AMQP Trigger
-NotifyQ    --> Consumer   : Trigger
-BE         --> AIModule   : RAG Query
-AIModule   --> RAG        : 查詢
-AIModule   --> Embed      : embedding
-
+Browser --> IngressController : HTTP/HTTPS
+IngressController --> FE   : HTTP/HTTPS (load-balancing)
+FE               --> BE   : REST API
+BE               --> DB   : TCP:5432
+BE               --> S3   : S3 API
+BE               --> RMQ  : AMQP
 @enduml
