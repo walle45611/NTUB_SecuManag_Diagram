@@ -7,9 +7,10 @@ participant Database
 User->>Frontend: 開啟新增資產頁面
 Frontend->>Backend: GET /api/isms/asset-categories
 Backend-->>Frontend: 回傳分類列表
+Frontend->>Backend: POST /api/isms/asset/
 Backend->>Approval: POST /api/system/approval/ （建立新增資產核准請求）
 Approval-->>Backend: approval_completed  （收到核准結果）
-Frontend->>Backend: POST /api/isms/asset/
 Backend->>Database: 新增資產資料
 Backend->>Frontend: 回傳並顯示至畫面
 @enduml
+

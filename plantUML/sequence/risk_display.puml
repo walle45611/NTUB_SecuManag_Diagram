@@ -5,7 +5,7 @@ participant Backend
 participant Database
 
 User ->> Frontend: 點擊「風險」按鈕
-Frontend ->> Backend: GET /api/isms/risk/{asset_id}/summary
+Frontend ->> Backend: GET /api/isms/risk/{asset_id}/force-directed
 Backend ->> Database: 讀取最新風險值
 Backend ->> Backend: 判斷風險等級 (High/Medium/Low)
 Backend -->> Frontend: 回傳風險值 + 風險等級

@@ -31,6 +31,6 @@ Browser --> IngressController : HTTP/HTTPS
 IngressController --> FE   : HTTP/HTTPS (load-balancing)
 FE               --> BE   : REST API
 BE               --> DB   : TCP:5432
-BE               --> S3   : S3 API
+BE               --> S3   : S3 API (TCP:9000)
 BE               --> RMQ  : AMQP
 @enduml
