@@ -1,39 +1,35 @@
-@startuml
+@startuml asset_overview
 
 left to right direction
 
 actor 使用者
 
-package "資產一覽表" {
-    usecase "顯示資產類別列表" as UC1
-    usecase "檢視資產欄位（ID、名稱、數值、描述、是否關鍵、維護日期、擁有者）" as UC2
+package "資產" {
+    usecase "檢查權限" as UC12
+    usecase "瀏覽資產類別" as UC1
+    usecase "檢視資產欄位\n（ID、名稱、數值、描述、包含自定義欄位）" as UC2
     usecase "選擇每頁顯示筆數" as UC3
     usecase "搜尋資產資料" as UC4
+    usecase "修改資產條目" as UC5
+    usecase "刪除資產條目" as UC6
+    usecase "＋新增資產" as UC7
+    usecase "＋匯入資產" as UC8
+    usecase "匯入資產後自動創建核准項目" as UC10
+    usecase "手動核准項目" as UC11
 }
 
-package "修改資產" {
-    usecase "顯示資產條目" as UC5
-    usecase "修改資產資料" as UC6
-    usecase "刪除資產資料" as UC7
-    usecase "搜尋資產資料" as UC8
-    usecase "＋新增資產" as UC9
-    usecase "＋匯入資產" as UC10
-    usecase "自動記錄建立時間" as UC11
-}
+使用者 --> UC12
+UC12 .down.> UC1 : <<include>>
+UC12 .down.> UC5 : <<include>>
+UC12 .down.> UC6 : <<include>>
+UC12 .down.> UC7 : <<include>>
+UC12 .down.> UC8 : <<include>>
+UC12 .down.> UC10 : <<include>>
 
+UC1 .down.> UC4 : <<include>>
+UC5 .down.> UC11 : <<include>>
 UC6 .down.> UC11 : <<include>>
-UC9 .down.> UC11 : <<include>>
-UC10 .down.> UC11 : <<include>>
-
-使用者 --> UC1
-使用者 --> UC2
-使用者 --> UC3
-使用者 --> UC4
-使用者 --> UC5
-使用者 --> UC6
-使用者 --> UC7
-使用者 --> UC8
-使用者 --> UC9
-使用者 --> UC10
+UC7 .down.> UC11 : <<include>>
+UC8 .down.> UC10 : <<include>>
 
 @enduml

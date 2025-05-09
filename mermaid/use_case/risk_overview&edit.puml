@@ -1,39 +1,34 @@
-@startuml
+@startuml risk_overview
 
 left to right direction
 
 actor 使用者
 
-package "風險一覽表" {
+package "風險" {
+    usecase "檢查權限" as UC13
     usecase "顯示風險清單" as UC1
     usecase "檢視欄位（ID、資產類別、資產名稱、威脅名稱、弱點名稱、風險值）" as UC2
     usecase "選擇每頁顯示筆數" as UC3
     usecase "搜尋風險資料" as UC4
-}
-
-package "修改風險" {
-    usecase "顯示風險資料" as UC5
     usecase "修改風險條目" as UC6
     usecase "刪除風險條目" as UC7
-    usecase "搜尋風險資料" as UC8
     usecase "＋新增風險" as UC9
     usecase "＋匯入風險" as UC10
-    usecase "自動記錄建立時間" as UC11
+    usecase "手動建立核准項目" as UC11
+    usecase "自動建立多個核准項目" as UC12
 }
 
-UC6 .down.> UC11 : <<include>>
-UC9 .down.> UC11 : <<include>>
-UC10 .down.> UC11 : <<include>>
+使用者 --> UC13
+UC13 .down.> UC1 : <<include>>
+UC13 .down.> UC6 : <<include>>
+UC13 .down.> UC7 : <<include>>
+UC13 .down.> UC9 : <<include>>
+UC13 .down.> UC10 : <<include>>
 
-使用者 --> UC1
-使用者 --> UC2
-使用者 --> UC3
-使用者 --> UC4
-使用者 --> UC5
-使用者 --> UC6
-使用者 --> UC7
-使用者 --> UC8
-使用者 --> UC9
-使用者 --> UC10
+UC1 .down.> UC4 : <<include>>
+UC6 .down.> UC11 : <<include>>
+UC7 .down.> UC11 : <<include>>
+UC9 .down.> UC11 : <<include>>
+UC10 .down.> UC12 : <<include>>
 
 @enduml
