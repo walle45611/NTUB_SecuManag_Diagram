@@ -5,25 +5,27 @@ left to right direction
 actor 使用者
 
 package "使用者一覽表" {
-    usecase "顯示使用者列表" as UC1
-    usecase "檢視使用者欄位（ID、名稱、帳號、角色、狀態）" as UC2
+    usecase "顯示使用者清單" as UC1
+    usecase "檢視欄位（ID、名稱、帳號、角色、狀態）" as UC2
     usecase "選擇每頁顯示筆數" as UC3
+    usecase "搜尋使用者資料" as UC4
 }
 
 package "修改使用者" {
-    usecase "顯示使用者資料" as UC4
-    usecase "編輯使用者資料" as UC5
-    usecase "刪除使用者資料" as UC6
-    usecase "自訂用戶名與角色" as UC7
-    usecase "＋新增使用者" as UC8
-    usecase "＋匯入使用者" as UC9
-    usecase "自動記錄建立時間" as UC10
+    usecase "顯示使用者清單" as UC5
+    usecase "編輯使用者資料" as UC6
+    usecase "刪除使用者資料" as UC7
+    usecase "搜尋使用者資料" as UC8
+    usecase "自訂用戶名與角色" as UC9
+    usecase "＋新增使用者" as UC10
+    usecase "＋匯入使用者" as UC11
+    usecase "自動記錄建立時間" as UC12
 }
 
-UC5 .down.> UC10 : <<include>>
-UC7 .down.> UC5 : <<include>>
-UC8 .down.> UC10 : <<include>>
-UC9 .down.> UC10 : <<include>>
+UC6 .down.> UC12 : <<include>>
+UC9 .down.> UC6 : <<include>>
+UC10 .down.> UC12 : <<include>>
+UC11 .down.> UC12 : <<include>>
 
 使用者 --> UC1
 使用者 --> UC2
@@ -34,5 +36,7 @@ UC9 .down.> UC10 : <<include>>
 使用者 --> UC7
 使用者 --> UC8
 使用者 --> UC9
+使用者 --> UC10
+使用者 --> UC11
 
 @enduml
