@@ -15,9 +15,10 @@ Backend ->> RabbitMQ: 推送至 Approve Queue (TTL & DLX 設定)
 Backend ->> ReviewerA: 發送核准通知
 
 alt 訊息逾時未處理
-    RabbitMQ ->> RabbitMQ: Dead Letter → DLQ
     Consumer ->> RabbitMQ: 從 DLQ 拉取訊息
+    Consumer ->> ReviewerA: 發送催繳提醒
     alt 再次逾時未處理
+        Consumer ->> RabbitMQ: Dead Letter → DLQ
         Consumer ->> ReviewerA: 發送催繳提醒
         Consumer ->> ReviewerB: 發送升級通知給上級
     end

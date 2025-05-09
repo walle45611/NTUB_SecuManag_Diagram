@@ -1,0 +1,33 @@
+@startuml
+
+left to right direction
+
+actor 使用者
+
+package "資產分類一覽表" {
+    usecase "瀏覽資產分類列表" as UC1
+    usecase "選擇每頁顯示筆數" as UC2
+    usecase "檢視分類欄位（ID、名稱、描述、狀態）" as UC3
+}
+
+package "修改資產分類" {
+    usecase "修改分類資料" as UC4
+    usecase "刪除分類資料" as UC5
+    usecase "＋新增資產類別" as UC6
+    usecase "＋匯入資產類別" as UC7
+    usecase "自動記錄建立時間" as UC8
+}
+
+UC4 .down.> UC8 : <<include>>
+UC6 .down.> UC8 : <<include>>
+UC7 .down.> UC8 : <<include>>
+
+使用者 --> UC1
+使用者 --> UC2
+使用者 --> UC3
+使用者 --> UC4
+使用者 --> UC5
+使用者 --> UC6
+使用者 --> UC7
+
+@enduml

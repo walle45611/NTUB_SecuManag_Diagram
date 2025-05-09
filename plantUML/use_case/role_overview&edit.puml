@@ -1,0 +1,37 @@
+@startuml
+
+left to right direction
+
+actor 使用者
+
+package "角色一覽表" {
+    usecase "顯示角色列表" as UC1
+    usecase "檢視角色欄位（ID、名稱、狀態）" as UC2
+    usecase "選擇每頁顯示筆數" as UC3
+}
+
+package "修改角色" {
+    usecase "顯示角色條目" as UC4
+    usecase "編輯角色資料" as UC5
+    usecase "刪除角色資料" as UC6
+    usecase "自訂義角色名稱" as UC7
+    usecase "＋新增角色" as UC8
+    usecase "＋匯入角色" as UC9
+    usecase "自動記錄建立時間" as UC10
+}
+
+UC5 .down.> UC10 : <<include>>
+UC8 .down.> UC10 : <<include>>
+UC9 .down.> UC10 : <<include>>
+
+使用者 --> UC1
+使用者 --> UC2
+使用者 --> UC3
+使用者 --> UC4
+使用者 --> UC5
+使用者 --> UC6
+使用者 --> UC7
+使用者 --> UC8
+使用者 --> UC9
+
+@enduml
