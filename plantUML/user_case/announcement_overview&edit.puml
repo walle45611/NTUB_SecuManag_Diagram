@@ -1,0 +1,29 @@
+@startuml announcement_overview
+
+left to right direction
+
+actor 使用者
+
+package "公告" {
+    usecase "檢查權限" as UC01
+    usecase "顯示公告清單" as UC02
+    usecase "檢視欄位（ID、標題、描述、日期、是否顯示、狀態）" as UC03
+    usecase "選擇每頁顯示筆數" as UC04
+    usecase "搜尋公告資料" as UC05
+    usecase "新增公告" as UC06
+    usecase "編輯公告" as UC07
+    usecase "刪除公告" as UC08
+    usecase "寫入建立時間" as UC09
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC01 .down.> UC06 : <<include>>
+UC01 .down.> UC07 : <<include>>
+UC01 .down.> UC08 : <<include>>
+
+UC02 .down.> UC05 : <<include>>
+UC06 .down.> UC09 : <<include>>
+UC07 .down.> UC09 : <<include>>
+
+@enduml
