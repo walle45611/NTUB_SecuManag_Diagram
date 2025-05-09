@@ -1,0 +1,25 @@
+@startuml personal_approval
+
+left to right direction
+
+actor 使用者
+
+package "個人核准" {
+    usecase "檢查權限" as UC01
+    usecase "顯示未處理核准項目" as UC02
+    usecase "顯示資訊（簽核 ID、名稱、操作按鈕）" as UC03
+    usecase "核准任務" as UC04
+    usecase "拒絕任務" as UC05
+    usecase "複製簽核 ID" as UC06
+    usecase "卡片式介面呈現" as UC07
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC02 .down.> UC03 : <<include>>
+UC03 .down.> UC04 : <<include>>
+UC03 .down.> UC05 : <<include>>
+UC03 .down.> UC06 : <<include>>
+UC02 .down.> UC07 : <<include>>
+
+@enduml
