@@ -1,0 +1,29 @@
+@startuml approval_overview
+
+left to right direction
+
+actor 使用者
+
+package "核准" {
+    usecase "檢查權限" as UC01
+    usecase "顯示核准清單" as UC02
+    usecase "檢視欄位（ID、名稱、關聯物件 ID、關聯類別、最終狀態、簽核者、時間戳記）" as UC03
+    usecase "檢視核准進度與當前狀態" as UC04
+    usecase "選擇每頁顯示筆數" as UC05
+    usecase "搜尋核准資料" as UC06
+    usecase "新增審核" as UC07
+    usecase "編輯核准紀錄" as UC08
+    usecase "寫入建立時間" as UC09
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC01 .down.> UC07 : <<include>>
+UC01 .down.> UC08 : <<include>>
+
+UC02 .down.> UC04 : <<include>>
+UC02 .down.> UC06 : <<include>>
+UC07 .down.> UC09 : <<include>>
+UC08 .down.> UC09 : <<include>>
+
+@enduml
