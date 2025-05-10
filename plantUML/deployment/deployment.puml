@@ -22,15 +22,19 @@ node "Kubernetes Cluster" <<Cluster>> {
       storage "MinIO\n(S3 API)"
     }
     node "rabbitmq-pod" <<Pod>> as RMQ {
-      component "RabbitMQ\n(AMQP)"
+      component "RabbitMQ Client\n(Consumer)"
+    }
+    node "rabbitmq-server-pod" <<Pod>> as RMQS {
+      component "RabbitMQ Server\n(AMQP Broker)"
     }
   }
 }
 
 Browser --> IngressController : HTTP/HTTPS
-IngressController --> FE   : HTTP/HTTPS (load-balancing)
+IngressController --> FE   : HTTP/HTTPS
 FE               --> BE   : REST API
 BE               --> DB   : TCP:5432
-BE               --> S3   : S3 API (TCP:9000)
-BE               --> RMQ  : AMQP
+BE               --> S3   : S3 API
+BE               --> RMQ  : AMQP (publish/consume)
+BE               --> RMQS : AMQP (broker)
 @enduml
