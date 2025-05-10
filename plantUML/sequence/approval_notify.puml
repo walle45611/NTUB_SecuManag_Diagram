@@ -9,7 +9,7 @@ actor ReviewerA as "核准者A"
 actor ReviewerB as "上級核准者"
 
 User ->> Frontend: 新增核准請求
-Frontend ->> Backend: POST /api/system/approval
+Frontend ->> Backend: POST /api/system/approval/
 Backend ->> Database: INSERT INTO approval_request ...
 Backend ->> RabbitMQ: 推送至 Approve Queue (TTL & DLX 設定)
 Backend ->> ReviewerA: 發送核准通知

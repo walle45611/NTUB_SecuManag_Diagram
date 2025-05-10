@@ -7,9 +7,7 @@ actor User as "發起者"
 
 ReviewerA ->> Frontend: 點選「拒絕」
 Frontend ->> Backend: POST /api/system/approval/{approval_id}/user/{user_id}/rejected
-Backend ->> Database: UPDATE approval SET status='rejected', signer='{"id": "A", "name": "ReviewerA"}'::jsonb
+Backend ->> Database: UPDATE approval SET status='rejected', signer='[{"id": "A", "name": "ReviewerA"},'
 Backend ->> Database: UPDATE 相關資料 SET is_current='false'
 Backend ->> User: 發送退回通知
 @enduml
-
-# signer 改 List 包一起
