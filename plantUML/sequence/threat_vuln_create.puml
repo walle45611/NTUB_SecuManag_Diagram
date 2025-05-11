@@ -4,6 +4,7 @@ participant Frontend
 participant Backend
 participant AI_Module as "AI Module"
 participant Database
+participant Approval as "核准模組"
 
 User->>Frontend: 開啟新增 弱點 / 威脅 頁面
 Backend-->>Frontend: 回傳分類列表

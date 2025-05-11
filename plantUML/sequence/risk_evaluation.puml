@@ -3,7 +3,7 @@ actor User as "使用者"
 participant Frontend
 participant Backend
 participant Database
-participant Approval as "核准流程模組"
+participant Approval as "核准模組"
 
 User ->> Frontend: 開啟新增風險頁面
 Frontend ->> Backend: GET /api/isms/asset-categories
@@ -17,7 +17,7 @@ Backend -->> Frontend: 回傳弱點列表
 User ->> Frontend: 選擇資產並點「新增風險」
 Frontend ->> Backend: POST /api/isms/risk/
 Frontend ->> Approval: POST /api/system/approval  （建立風險核准請求）
-Approval -->> Backend: approval_completed  （收到核准結果）
+Approval -->> Backend: approval_completed（收到核准結果）
 Backend ->> Database: 取得 Asset Setting（公式與變數）
 Backend ->> Database: 讀取 Asset/Threat/Vulnerability 資料
 Backend ->> Backend: 套用公式計算風險值

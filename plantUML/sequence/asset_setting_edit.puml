@@ -5,6 +5,7 @@ participant Frontend
 participant Backend
 participant Database
 participant Service as "風險計算服務"
+participant Approval as "核准模組"
 
 User ->> Frontend: 點擊「編輯資產設定」
 Frontend ->> Backend: GET /api/system/asset-setting/

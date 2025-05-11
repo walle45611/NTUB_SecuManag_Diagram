@@ -3,6 +3,7 @@ actor User as "一般使用者"
 participant Frontend
 participant Backend
 participant Database
+participant Approval as "核准模組"
 
 User->>Frontend: 開啟新增資產頁面
 Frontend->>Backend: GET /api/isms/asset-categories
