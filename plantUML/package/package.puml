@@ -1,0 +1,32 @@
+@startuml
+package "User Interface" {
+  [Browser]
+  [frontend-pod\n(nginx + 靜態檔案)] as FE
+}
+
+package "Routing" {
+  [ingress-nginx\n(nginx Ingress Controller)] as IngressController
+}
+
+package "Application Service" {
+  [backend-pod\n(Python App)] as BE
+}
+
+package "Data Storage" {
+  [postgresql-pod\n(PostgreSQL)] as DB
+  [minio-pod\n(MinIO)] as S3
+}
+
+package "Messaging" {
+  [rabbitmq-pod\n(Consumer Client)] as RMQ
+  [rabbitmq-server-pod\n(Broker)] as RMQS
+}
+
+Browser --> IngressController : HTTP/HTTPS
+IngressController --> FE   : HTTP/HTTPS
+FE --> BE                  : REST API
+BE --> DB                  : TCP:5432
+BE --> S3                  : S3 API
+BE --> RMQ                 : AMQP (pub/consume)
+BE --> RMQS                : AMQP (broker)
+@enduml
