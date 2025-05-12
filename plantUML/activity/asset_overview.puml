@@ -1,0 +1,23 @@
+@startuml asset_overview_activity
+
+start
+
+:載入資產一覽表頁面;
+
+:顯示資產清單與欄位
+(ID、名稱、數值、描述、是否關鍵、
+維護日期、擁有者);
+
+partition "使用者互動" {
+    if (調整每頁顯示行數?) then (是)
+        :重新載入資產清單 (依據行數設定);
+    endif
+
+    if (輸入搜尋關鍵字?) then (是)
+        :過濾資產清單 (根據搜尋條件);
+    endif
+}
+
+stop
+
+@enduml
