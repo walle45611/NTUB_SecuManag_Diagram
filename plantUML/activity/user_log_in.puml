@@ -1,0 +1,25 @@
+@startuml user_login_flow
+
+start
+
+:顯示登入畫面;
+
+partition "登入選項" {
+  if (選擇登入方式?) then (Google)
+    :跳轉至 Google 登入頁面;
+    :Google 驗證使用者;
+  else (Microsoft)
+    :跳轉至 Microsoft 登入頁面;
+    :Microsoft 驗證使用者;
+  endif
+}
+
+if (登入成功?) then (是)
+  :導向本系統首頁;
+else (否)
+  :顯示登入失敗訊息;
+  stop
+endif
+
+stop
+@enduml
