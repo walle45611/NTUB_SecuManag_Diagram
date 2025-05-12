@@ -1,0 +1,33 @@
+@startuml
+!pragma componentDiagram
+
+' 定義組件
+component Browser as UI
+component "ingress-nginx\n(Ingress Controller)" as Ingress
+component "Frontend\n(nginx + 靜態檔案)" as FE
+component "Backend\n(Python Service)" as BE
+component "PostgreSQL\n(Database)" as DB
+component "MinIO\n(Object Storage)" as S3
+component "RabbitMQ Client\n(Consumer)" as RMQClient
+component "RabbitMQ Broker\n(Server)" as RMQServer
+
+' 外部系統
+boundary Browser
+
+' 接口定義
+interface HTTP
+interface REST
+interface TCP5432
+interface S3API
+interface AMQP
+
+' 連線關係
+Browser -down-> Ingress : HTTP
+Ingress --> FE       : HTTP
+FE --> BE            : REST
+BE --> DB            : TCP5432
+BE --> S3            : S3API
+BE --> RMQClient     : AMQP
+RMQClient --> RMQServer : AMQP
+
+@enduml
