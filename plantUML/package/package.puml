@@ -1,41 +1,52 @@
 @startuml
 
-package "Kubernetes Cluster" {
-
-  package "Network Layer" {
-    [Ingress Controller\n(ingress-nginx)] as Ingress
-  }
-
-  package "Application" {
-    package "Presentation" {
-      [Frontend\n(React, TS, PWA)] as Frontend
-    }
-    package "Business Logic" {
-      [Backend\n(Python, FastAPI)] as Backend
-      [Consumer\n(Python Worker)] as Consumer
-      [AI Module\n(Embedding & RAG)] as AIModule
-    }
-  }
-
-  package "Data Services" {
-    [RabbitMQ\n(Message Broker)] as RabbitMQ
-    [MinIO\n(Object Storage)] as MinIO
-    [PostgreSQL\n(SQLAlchemy, Alembic)] as Database
-  }
+package "Frontend" {
+  [nginx (Static Files)]
 }
 
-package "External" {
-  [Google SMTP Server] as SMTP
+package "Backend" {
+  [Python API Service]
 }
 
-' Define dependencies between packages
-Ingres-->Frontend : HTTP/HTTPS
-Frontend-->Backend : REST API
-Backend-->RabbitMQ : AMQP
-Consumer-->RabbitMQ : AMQP
-Backend-->MinIO : S3 API
-Backend-->Database : TCP:5432
-Backend-->AIModule : prompts & data
-AIModule-->Database : embeddings & RAG
-AIModule-->SMTP : email
+package "Messaging" {
+  [RabbitMQ Broker]
+  [Consumer Worker]
+}
+
+package "AI Module" {
+  [Ollama Embedding Model]
+  [RAG Query Service]
+}
+
+package "Database" {
+  [PostgreSQL]
+}
+
+package "Storage" {
+  [MinIO API]
+  [MinIO Web]
+}
+
+package "External Services" {
+  [Google SMTP Server]
+  [OAuth Server]
+}
+
+
+Frontend --> Backend : REST API
+Frontend --> "OAuth Server" : Authentication
+Backend --> Messaging : Task Queue
+Backend --> Storage : File Operations
+Backend --> Database : CRUD Operations
+Backend --> "AI Module" : AI Processing
+
+
+"Ollama Embedding Model" --> "RAG Query Service" : Vector Embedding
+"Consumer Worker" --> "RabbitMQ Broker" : Subscribe
+"RabbitMQ Broker" --> "Consumer Worker" : Tasks
+"Consumer Worker" --> Database : Query/Update
+"Consumer Worker" --> "Google SMTP Server" : Send Email
+"RAG Query Service" --> Database : Query Documents
+"AI Module" --> Backend : Query Results
+
 @enduml
