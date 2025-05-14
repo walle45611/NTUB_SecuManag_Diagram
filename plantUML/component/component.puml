@@ -1,33 +1,39 @@
 @startuml
-!pragma componentDiagram
 
-' 定義組件
-component Browser as UI
-component "ingress-nginx\n(Ingress Controller)" as Ingress
-component "Frontend\n(nginx + 靜態檔案)" as FE
-component "Backend\n(Python Service)" as BE
-component "PostgreSQL\n(Database)" as DB
-component "MinIO\n(Object Storage)" as S3
-component "RabbitMQ Client\n(Consumer)" as RMQClient
-component "RabbitMQ Broker\n(Server)" as RMQServer
+package "Kubernetes Cluster" {
+  component "Ingress Controller\n(ingress-nginx)" as Ingress
 
-' 外部系統
-boundary Browser
+  package "Namespace: ntub-secumanage" {
+    component "Frontend\n(React, TypeScript, TailwindCSS, PWA)" as Frontend
 
-' 接口定義
-interface HTTP
-interface REST
-interface TCP5432
-interface S3API
-interface AMQP
+    component "Backend\n(Python, FastAPI)" as Backend
 
-' 連線關係
-Browser -down-> Ingress : HTTP
-Ingress --> FE       : HTTP
-FE --> BE            : REST
-BE --> DB            : TCP5432
-BE --> S3            : S3API
-BE --> RMQClient     : AMQP
-RMQClient --> RMQServer : AMQP
+    component "RabbitMQ" as RabbitMQ
+
+    component "MinIO\n(S3 API)" as MinIO
+
+    component "PostgreSQL\n(SQLAlchemy, Alembic)" as Database
+
+    component "Consumer\n(Python Worker)" as Consumer
+
+    component "AI Module\n(Embedding Model, RAG)" as AIModule
+  }
+}
+
+component "Google SMTP Server" as SMTP
+
+Ingress --> Frontend : "HTTP/HTTPS"
+Frontend --> Backend : "REST API"
+Backend --> RabbitMQ : "AMQP publish"
+Consumer --> RabbitMQ : "AMQP subscribe"
+Consumer --> Database : "Read/Write via SQLAlchemy"
+Backend --> MinIO : "S3 API calls"
+Backend --> Database : "TCP:5432"
+Backend --> AIModule : "Send prompt & data / retrieve embeddings"
+AIModule --> Database : "Store/Retrieve embeddings & RAG data"
+AIModule --> SMTP : "Send notification emails"
+SMTP --> Backend : "SMTP API"
+RabbitMQ --> Consumer : "AMQP publish/subscribe"
+RabbitMQ --> Backend : "AMQP publish/subscribe"
 
 @enduml
