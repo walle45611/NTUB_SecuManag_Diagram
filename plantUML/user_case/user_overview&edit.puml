@@ -2,7 +2,7 @@
 
 left to right direction
 
-actor 使用者
+actor User
 
 package "使用者" {
     usecase "檢查權限" as UC12
@@ -18,7 +18,7 @@ package "使用者" {
     usecase "手動核准項目" as UC11
 }
 
-使用者 --> UC12
+User --> UC12
 UC12 .down.> UC1 : <<include>>
 UC12 .down.> UC5 : <<include>>
 UC12 .down.> UC6 : <<include>>
