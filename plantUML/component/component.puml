@@ -26,13 +26,13 @@ Ingress --> Frontend
 Frontend --> Backend
 Backend --> RabbitMQ
 Consumer --> RabbitMQ
-Consumer --> Database
 Backend --> MinIO
 Backend --> Database
 Backend --> AIModule
 AIModule --> Database
-SMTP --> Backend
 RabbitMQ --> Consumer
 RabbitMQ --> Backend
+Consumer --> SMTP
+AIModule --> Backend
 
 @enduml
