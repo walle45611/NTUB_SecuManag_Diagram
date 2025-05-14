@@ -22,18 +22,17 @@ package "Kubernetes Cluster" {
 
 component "Google SMTP Server" as SMTP
 
-Ingress --> Frontend : "HTTP/HTTPS"
-Frontend --> Backend : "REST API"
-Backend --> RabbitMQ : "AMQP publish"
-Consumer --> RabbitMQ : "AMQP subscribe"
-Consumer --> Database : "Read/Write via SQLAlchemy"
-Backend --> MinIO : "S3 API calls"
-Backend --> Database : "TCP:5432"
-Backend --> AIModule : "Send prompt & data / retrieve embeddings"
-AIModule --> Database : "Store/Retrieve embeddings & RAG data"
-AIModule --> SMTP : "Send notification emails"
-SMTP --> Backend : "SMTP API"
-RabbitMQ --> Consumer : "AMQP publish/subscribe"
-RabbitMQ --> Backend : "AMQP publish/subscribe"
+Ingress --> Frontend
+Frontend --> Backend
+Backend --> RabbitMQ
+Consumer --> RabbitMQ
+Consumer --> Database
+Backend --> MinIO
+Backend --> Database
+Backend --> AIModule
+AIModule --> Database
+SMTP --> Backend
+RabbitMQ --> Consumer
+RabbitMQ --> Backend
 
 @enduml
