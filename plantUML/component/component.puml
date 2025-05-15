@@ -1,5 +1,33 @@
 @startuml
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+package "Kubernetes Cluster" {
+  component "Ingress Controller\n(ingress-nginx)" as Ingress
+
+  package "Namespace: ntub-secumanage" {
+    component "Frontend\n(React, TypeScript, TailwindCSS, PWA)" as Frontend
+
+    component "Backend\n(Python, FastAPI)" as Backend
+
+    component "RabbitMQ" as RabbitMQ
+
+    component "MinIO\n(S3 API)" as MinIO
+
+    component "PostgreSQL\n(SQLAlchemy, Alembic)" as Database
+
+    component "Consumer\n(Python Worker)" as Consumer
+
+    component "AI Module\n(Embedding Model, RAG)" as AIModule
+  }
+}
+
+component "Google SMTP Server" as SMTP
+
+Ingress --> Frontend
+=======
+>>>>>>> 91d9d4e ((modify): 套件圖調整)
 component "Frontend\n(React, TypeScript, TailwindCSS, PWA)" as Frontend
 component "Backend\n(Python, FastAPI)" as Backend
 component "RabbitMQ" as RabbitMQ
@@ -9,6 +37,7 @@ component "Consumer\n(Python Worker)" as Consumer
 component "AI Module\n(Embedding Model, RAG)" as AIModule
 component "Google SMTP Server" as SMTP
 
+>>>>>>> 4864c2b ((modify): 調整元件圖)
 Frontend --> Backend
 Backend --> RabbitMQ
 Consumer --> RabbitMQ
@@ -20,6 +49,9 @@ RabbitMQ --> Consumer
 RabbitMQ --> Backend
 Consumer --> SMTP
 AIModule --> Backend
+<<<<<<< HEAD
+=======
 Backend --> SMTP
+>>>>>>> 4864c2b ((modify): 調整元件圖)
 
 @enduml
