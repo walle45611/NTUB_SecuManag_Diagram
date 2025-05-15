@@ -1,0 +1,25 @@
+@startuml
+
+component "Frontend\n(React, TypeScript, TailwindCSS, PWA)" as Frontend
+component "Backend\n(Python, FastAPI)" as Backend
+component "RabbitMQ" as RabbitMQ
+component "MinIO\n(S3 API)" as MinIO
+component "PostgreSQL\n(SQLAlchemy, Alembic)" as Database
+component "Consumer\n(Python Worker)" as Consumer
+component "AI Module\n(Embedding Model, RAG)" as AIModule
+component "Google SMTP Server" as SMTP
+
+Frontend --> Backend
+Backend --> RabbitMQ
+Consumer --> RabbitMQ
+Backend --> MinIO
+Backend --> Database
+Backend --> AIModule
+AIModule --> Database
+RabbitMQ --> Consumer
+RabbitMQ --> Backend
+Consumer --> SMTP
+AIModule --> Backend
+Backend --> SMTP
+
+@enduml
