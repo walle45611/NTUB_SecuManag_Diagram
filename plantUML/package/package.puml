@@ -1,32 +1,49 @@
 @startuml
-package "User Interface" {
-  [Browser]
-  [frontend-pod\n(nginx + 靜態檔案)] as FE
+' 高階套件圖 - 展示專案主要模組與依賴
+
+package "Backend" as BE {
+  package "app" as APP {
+    package "adapters" as AD {
+      package "inbound.api.endpoints" as IAE
+      package "outbound" as OUT
+    }
+    package "application" as APP_APP
+    package "domain" as DOM
+    package "framework" as FR
+  }
+  package "tests" as TS
 }
 
-package "Routing" {
-  [ingress-nginx\n(nginx Ingress Controller)] as IngressController
+package "Frontend" as FE {
+  package "src" as SRC {
+    package "components" as COMP
+    package "pages" as PAGES
+    package "layouts" as LAYOUTS
+    package "hooks" as HOOKS
+    package "utils" as UTILS
+  }
 }
 
-package "Application Service" {
-  [backend-pod\n(Python App)] as BE
+package "RabbitMQ Service" as RQ {
+  package "app" as RQ_APP {
+    package "adapter" as RQ_AD
+    package "infrastructure" as RQ_INFRA
+    package "repositories" as RQ_REPO
+    package "services" as RQ_SVC
+    package "utils" as RQ_UTILS
+  }
 }
 
-package "Data Storage" {
-  [postgresql-pod\n(PostgreSQL)] as DB
-  [minio-pod\n(MinIO)] as S3
-}
+' 客戶端到後端的 API 呼叫
+FE ..> BE : HTTP/API calls
 
-package "Messaging" {
-  [rabbitmq-pod\n(Consumer Client)] as RMQ
-  [rabbitmq-server-pod\n(Broker)] as RMQS
-}
+' 後端內部依賴
+IAE ..> APP_APP : use
+APP_APP ..> DOM : business logic
+APP_APP ..> FR : utility
+OUT ..> FR : infrastructure
 
-Browser --> IngressController : HTTP/HTTPS
-IngressController --> FE   : HTTP/HTTPS
-FE --> BE                  : REST API
-BE --> DB                  : TCP:5432
-BE --> S3                  : S3 API
-BE --> RMQ                 : AMQP (pub/consume)
-BE --> RMQS                : AMQP (broker)
+' RabbitMQ 消息服務整合
+RQ_SVC ..> AD : invoke
+RQ_INFRA ..> RQ_AD : support
 @enduml
