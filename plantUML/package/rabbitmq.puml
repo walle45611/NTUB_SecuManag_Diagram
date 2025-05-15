@@ -1,0 +1,9 @@
+package "RabbitMQ" as RQ {
+  package "app" as RQ_APP {
+    package "adapter" as RQ_AD
+    package "infrastructure" as RQ_INFRA
+    package "repositories" as RQ_REPO
+    package "services" as RQ_SVC
+    package "utils" as RQ_UTILS
+  }
+}

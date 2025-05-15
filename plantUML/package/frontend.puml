@@ -1,0 +1,9 @@
+package "Frontend" as FE {
+  package "src" as SRC {
+    package "components" as COMP
+    package "pages" as PAGES
+    package "layouts" as LAYOUTS
+    package "hooks" as HOOKS
+    package "utils" as UTILS
+  }
+}
