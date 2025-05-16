@@ -1,0 +1,14 @@
+@startuml
+package "Backend" as BE {
+  package "app" as APP {
+    package "adapters" as AD {
+      package "inbound.api.endpoints" as IAE
+      package "outbound" as OUT
+    }
+    package "application" as APP_APP
+    package "domain" as DOM
+    package "framework" as FR
+  }
+  package "tests" as TS
+}
+@enduml
