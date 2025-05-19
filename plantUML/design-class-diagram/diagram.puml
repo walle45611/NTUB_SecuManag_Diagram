@@ -14,7 +14,11 @@ class announcement {
   boolean is_show
   uuid parent_id
   uuid id
-  + void 
+  + get_announcement_version_record()
+  + get_paginated_announcement_with_status()
+  + create_announcement()
+  + validation_and_update_announcement()
+  + validation_and_delete_announcement()
 }
 class app_setting {
   varchar version_group_id
@@ -22,6 +26,9 @@ class app_setting {
   uuid uploadfile_entity_id
   uuid parent_id
   uuid id
+  + get_app_setting()
+  + get_app_setting_version_record()
+  + create_app_setting()
 }
 class approval {
   varchar name
@@ -34,6 +41,20 @@ class approval {
   timestamp with time zone created_at
   uuid uploadfile_entity_id
   uuid id
+  + get_approval()
+  + get_paginated_approval_with_status()
+  + get_paginated_approval_with_status_for_user()
+  + get_approval_with_document_path()
+  + create_approval()
+  + update_approval()
+  + delete_approval()
+  # _publish_queue_and_send_mail()
+  # _build_and_save()
+  # _get_signer_pending_user()
+  # _get_valid_generate_presigned_url()
+  # _translate_submit()
+  # _translate_email_approval()
+  # _translate_email_user()
 }
 class asset {
   varchar version_group_id
@@ -45,6 +66,12 @@ class asset {
   uuid asset_category_id
   uuid parent_id
   uuid id
+  + get_asset()
+  + get_asset_with_category()
+  + get_asset_version_record()
+  + get_paginated_asset_with_status()
+  + create_asset()
+  + validation_and_update_asset()
 }
 class asset_category {
   varchar version_group_id
@@ -53,6 +80,15 @@ class asset_category {
   varchar description
   uuid parent_id
   uuid id
+  + get_asset_category()
+  + get_assets_by_category()
+  + get_asset_category_version_record()
+  + get_pagination_asset_category_with_status()
+  + get_asset_catgory_dropdown()
+  + create_asset_category()
+  + validation_and_update_asset_category()
+  + validation_and_delete_asset_category()
+  + get_asset_category_statistics()
 }
 class asset_setting {
   varchar version_group_id
@@ -67,6 +103,10 @@ class asset_setting {
   jsonb custom_fields
   uuid parent_id
   uuid id
+  + get_asset_setting()
+  + get_asset_setting_version_record()
+  + get_asset_setting_custom_fields()
+  + validation_and_update_asset_setting()
 }
 class assignment {
   varchar description
@@ -75,6 +115,9 @@ class assignment {
   varchar manager
   varchar job_name
   integer id
+  + create_assignment()
+  + update_assignment()
+  + delete_assignment()
 }
 class document {
   varchar version_group_id
@@ -86,6 +129,16 @@ class document {
   uuid creator_id
   uuid parent_id
   uuid id
+  + create_document()
+  + get_document()
+  + get_document_version_record()
+  + get_paginated_document_with_status()
+  + create_document_command_from_approval()
+  + archive_document()
+  + process_document_archive_if_needed()
+  # _get_valid_uploadfile_entity()
+  # _get_valid_generate_presigned_url()
+  # _build_document_entity()
 }
 class formula_variable {
   varchar name
@@ -107,6 +160,14 @@ class risk {
   uuid vulnerability_id
   uuid parent_id
   uuid id
+  + get_risk()
+  + get_risk_version_record()
+  + get_paginated_risk_with_status()
+  + get_risk_top_5()
+  + create_risk()
+  + validation_and_update_risk()
+  + validation_and_delete_risk()
+  + get_risk_level_statistics()
 }
 class role {
   varchar version_group_id
@@ -114,6 +175,14 @@ class role {
   varchar name
   uuid parent_id
   uuid id
+  + get_role()
+  + get_role_version_record()
+  + get_paginated_role_with_status()
+  + get_user_dropdown_by_role_id()
+  + get_role_dropdown()
+  + create_role()
+  + validation_and_update_role()
+  + validation_and_delete_role()
 }
 class role_permission_link {
   uuid role_id
@@ -128,11 +197,21 @@ class threat {
   cia_type type
   uuid parent_id
   uuid id
+  + get_threat()
+  + get_threat_version_record()
+  + get_paginated_threat_with_status()
+  + get_threat_dropdown()
+  + create_threat()
+  + create_multiple_instances()
+  + validation_and_update_threat()
+  + validation_and_delete_threat()
 }
 class uploadfile_entity {
   varchar name
   varchar path
   uuid id
+  + get_uploadfile_entity()
+  + create_uploadfile_entity()
 }
 class user {
   varchar version_group_id
@@ -144,6 +223,13 @@ class user {
   boolean is_active
   uuid parent_id
   uuid id
+  + get_user_dropdown()
+  + get_user_version_record()
+  + get_paginated_user_with_status()
+  + get_user_with_permisssion()
+  + create_user()
+  + validation_and_update_user()
+  + validation_and_delete_user()
 }
 class user_permission_link {
   uuid user_id
@@ -162,6 +248,15 @@ class vulnerability {
   cia_type type
   uuid parent_id
   uuid id
+  + get_vulnerability()
+  + get_vulnerability_version_record()
+  + get_paginated_vuln_with_status()
+  + get_vulnerability_dropdown()
+  + parse_xlsx_to_instances()
+  + create_vulnerability()
+  + create_multiple_instances()
+  + validation_and_update_vulnerability()
+  + validation_and_delete_vulnerability()
 }
 
 announcement --> announcement : parent_id:id
