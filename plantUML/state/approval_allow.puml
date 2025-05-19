@@ -1,0 +1,45 @@
+@startuml
+
+left to right direction
+
+[*] --> Pending : 建立申請
+
+state Pending {
+  note right
+    初始狀態，等待第一位核准
+  end note
+}
+
+Pending --> ApprovedByA : ReviewerA 點選「通過」\n/update approval_record.status = approved\n紀錄簽署者 A
+
+state ApprovedByA {
+  note right
+    已通過 A，判斷是否有下一位
+  end note
+}
+
+ApprovedByA --> WaitingForReviewerB : 還有下一位審核者\n/發送通知給 ReviewerB
+
+ApprovedByA --> CompletedApproval : 全部審核完成
+
+WaitingForReviewerB --> ApprovedByB : ReviewerB 點選「通過」\n/update approval_record.status = approved\n紀錄簽署者 B
+
+state ApprovedByB {
+  note right
+    已通過 B
+  end note
+}
+
+ApprovedByB --> CompletedApproval
+
+state CompletedApproval {
+  note right
+    /更新 approval_request.status = approved\n
+    /呼叫 AI 模組並處理回傳\n
+    /文件歸檔並向量化儲存\n
+    /執行後續業務邏輯並儲存結果
+  end note
+}
+
+CompletedApproval --> [*] : 流程結束
+@enduml

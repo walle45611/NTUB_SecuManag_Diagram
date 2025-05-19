@@ -1,0 +1,22 @@
+@startuml
+[*] --> PendingApproval : 建立申請
+
+state PendingApproval {
+  note right: 等待核准者 A 處理
+}
+
+state RejectedByA {
+  note right: A 拒絕後更新資料庫狀態
+}
+
+state NotifiedRequester {
+  note right: 請求者已收到退回通知，流程結束
+}
+
+/' 轉換標籤務必要與箭線同一行，換行請用 \n '/
+PendingApproval --> RejectedByA : ReviewerA 點選「拒絕」\n更新 approval.status = rejected\n紀錄 signer A\n更新相關資料 is_current = false
+
+RejectedByA --> NotifiedRequester : 發送退回通知給發起者
+
+NotifiedRequester --> [*]
+@enduml
