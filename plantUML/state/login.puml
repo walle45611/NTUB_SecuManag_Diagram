@@ -1,0 +1,12 @@
+@startuml
+hide empty description
+
+[*] --> 未登入 : 點擊「Google / Microsoft 登入」
+未登入 --> 授權驗證中 : 導向 Provider 登入頁
+授權驗證中 --> 已登入 : 驗證成功
+授權驗證中 --> 登入失敗 : 驗證失敗
+
+已登入 --> [*]
+登入失敗 --> 未登入
+
+@enduml
