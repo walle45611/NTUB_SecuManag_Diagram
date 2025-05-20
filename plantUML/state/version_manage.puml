@@ -1,0 +1,24 @@
+@startuml
+hide empty description
+
+
+[*] --> Draft : 使用者「新增／修改物件」
+state "草稿\n(Draft)" as Draft <<draft>>
+
+Draft --> PendingApproval : POST /{module}/{resource}/update\n＋送 Approval
+state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
+
+PendingApproval --> Current  : approval_completed
+PendingApproval --> Rejected : approval_rejected
+state "被退回\n(Rejected)" as Rejected <<error>>
+Rejected --> Draft : 使用者再次編輯後\n重新送審
+
+state "目前版本\n(Current)" as Current <<current>>
+
+Current --> Superseded : 新版本核准成功
+state "已取代\n(Superseded)" as Superseded <<terminal>>
+
+Current --> Archived   : 封存／刪除
+Superseded --> Archived : 清理舊版
+state "已封存\n(Archived)" as Archived <<terminal>>
+@enduml

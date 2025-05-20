@@ -1,4 +1,5 @@
 @startuml
+
 hide empty description
 
 [*] --> 未登入 : 點擊「Google / Microsoft 登入」

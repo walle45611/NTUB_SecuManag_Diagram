@@ -1,0 +1,28 @@
+@startuml
+hide empty description
+
+
+[*] --> Draft : 開啟「新增威脅／弱點」頁
+state "草稿\n(Draft)" as Draft <<draft>>
+
+Draft --> PendingApproval : POST /threat 或 /vulnerability\n+ 送 Approval
+state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
+
+PendingApproval --> Approved  : approval_completed
+PendingApproval --> Rejected  : approval_rejected
+state "被退回\n(Rejected)" as Rejected <<error>>
+Rejected --> Draft : 使用者修改後再送審
+
+state "已核准\n(Approved)" as Approved <<approval>>
+Approved --> Assessing : 呼叫 AI Module 評估數值
+state "評估中\n(Assessing)" as Assessing <<assess>>
+
+Assessing --> Active : AI Module 寫入 DB 完成
+state "已生效\n(Active)" as Active <<active>>
+
+Active --> Archived : 封存 / 停用
+state "已封存\n(Archived)" as Archived <<terminal>>
+
+Active --> Deleted : 刪除威脅／弱點
+state "已刪除\n(Deleted)" as Deleted <<terminal>>
+@enduml

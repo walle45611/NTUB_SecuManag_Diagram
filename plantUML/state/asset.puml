@@ -1,0 +1,33 @@
+@startuml
+
+hide empty description
+
+[*] --> Draft : 開啟「新增資產」頁面
+state "草稿(Draft)" as Draft <<draft>>
+
+Draft --> PendingApproval : 送出建立資產\nPOST /api/isms/asset/\n→ 同步產生核准請求
+state "待核准(PendingApproval)" as PendingApproval <<approval>>
+
+PendingApproval --> Approved : approval_completed
+PendingApproval --> Rejected : approval_rejected
+state "已拒絕(Rejected)" as Rejected <<terminal>>
+
+Rejected --> Draft : 使用者調整後再次送審
+
+state "已核准(Approved)" as Approved <<approval>>
+Approved --> Active : Backend 寫入資產資料\nINSERT INTO asset
+
+state "啟用中(Active)" as Active <<active>> {
+  [*] --> InUse
+  state InUse as "使用中"
+
+  InUse --> Editing : 編輯自訂欄位\nPUT /api/isms/asset-settings
+  state Editing as "編輯中"
+  Editing --> InUse : 儲存成功
+}
+
+Active --> Archived : 封存 / 停用
+state "已封存(Archived)" as Archived <<terminal>>
+Active --> Deleted  : 刪除資產
+state "已刪除(Deleted)"  as Deleted  <<terminal>>
+@enduml

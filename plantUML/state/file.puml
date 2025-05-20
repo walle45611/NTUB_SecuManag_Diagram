@@ -1,0 +1,28 @@
+@startuml
+
+hide empty description
+
+[*] --> Init : 使用者挑檔案
+state "建立中\n(Init)" as Init <<inprogress>>
+
+Init --> Uploading : POST /uploadfile_entity\n(寫入 DB)
+state "上傳中\n(Uploading)" as Uploading <<inprogress>>
+
+Uploading --> Stored : PUT 檔案至 MinIO\n→ 成功
+Uploading --> Failed : 上傳失敗
+state "上傳失敗\n(Failed)" as Failed <<error>>
+Failed --> Uploading : 重新嘗試上傳
+
+state "已儲存\n(Stored)" as Stored <<stored>>
+
+Stored --> Available : 前端要求預覽\nGET /document/{id}\n→ 產生預簽名 URL
+state "可預覽\n(Available)" as Available <<ready>>
+
+Available --> Previewing : 使用者開啟 URL
+state "預覽中\n(Previewing)" as Previewing <<preview>>
+Previewing --> Available : 關閉預覽頁
+
+Available --> Deleted : 刪除檔案
+Stored --> Deleted    : 直接刪除 (未曾預覽亦可)
+state "已刪除\n(Deleted)" as Deleted <<terminal>>
+@enduml
