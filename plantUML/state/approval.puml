@@ -1,0 +1,16 @@
+@startuml
+
+left to right direction
+hide empty description
+scale 350 width
+
+[*] --> Approval_process: 發送核准請求
+state Approval_process{
+  [*] --> Pending: 等待核准
+  Pending --> Overdue : 核准逾期
+  Pending --> Approval_process: ]核准
+  Pending --> Rejected: 核准拒絕
+  Rejected --> [*]: 流程結束，簽核退回
+}
+
+@enduml
