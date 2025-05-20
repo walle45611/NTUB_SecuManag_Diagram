@@ -18,7 +18,4 @@ state "目前版本\n(Current)" as Current <<current>>
 Current --> Superseded : 新版本核准成功
 state "已取代\n(Superseded)" as Superseded <<terminal>>
 
-Current --> Archived   : 封存／刪除
-Superseded --> Archived : 清理舊版
-state "已封存\n(Archived)" as Archived <<terminal>>
 @enduml
