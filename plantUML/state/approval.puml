@@ -7,10 +7,17 @@ scale 350 width
 [*] --> Approval_process: 發送核准請求
 state Approval_process{
   [*] --> Pending: 等待核准
-  Pending --> Overdue : 核准逾期
-  Pending --> Approval_process: ]核准
+  Pending --> Approval_process: 請求上級核准
   Pending --> Rejected: 核准拒絕
+  Pending --> Approved_complete: 核准流程完成
+  Pending --> Overdue: 核准逾期
   Rejected --> [*]: 流程結束，簽核退回
 }
-
+state Overdue{
+  [*] --> Call_approval: 通知逾期
+  Call_approval--> Overdue: 再次逾期
+  Overdue --> Call_approval: 向上級發送信件
+  Overdue --> Approval_process: 再次進入簽核流程
+}
+Approved_complete --> [*]: 流程結束，簽核完成
 @enduml
