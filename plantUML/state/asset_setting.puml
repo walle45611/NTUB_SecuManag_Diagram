@@ -1,0 +1,31 @@
+@startuml
+
+hide empty description
+
+[*] --> Draft : 使用者點擊「編輯資產設定」\nGET /asset-setting/
+state "草稿\n(Draft)" as Draft <<draft>>
+
+Draft --> PendingApproval : 保存設定\nPOST /asset-setting/update\n→ 同步送 Approval
+state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
+
+PendingApproval --> Approved : approval_completed
+PendingApproval --> Rejected : approval_rejected
+state "被退回\n(Rejected)" as Rejected <<terminal>>
+Rejected --> Draft : 再次編輯後重新送審
+
+state "已核准\n(Approved)" as Approved <<approval>>
+
+state "啟用中\n(Active)" as Active <<active>> {
+  [*] --> InUse
+  state "使用中\n(In-Use)"        as InUse
+  state "風險計算中\n(Recalculating)" as Recalculating
+
+  InUse --> Recalculating : Backend 觸發風險計算
+  Recalculating --> InUse : Service 計算完成
+}
+
+Approved --> Active : Backend 更新 DB\n→ 觸發 Service 重算
+
+Active --> Archived : 停用設定
+state "已封存\n(Archived)" as Archived <<terminal>>
+@enduml

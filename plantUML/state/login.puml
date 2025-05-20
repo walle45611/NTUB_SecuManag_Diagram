@@ -1,0 +1,23 @@
+@startuml
+
+
+[*] --> Idle
+state "未登入\n(Idle)" as Idle <<idle>>
+
+Idle --> Redirecting : 點擊「Google / Microsoft 登入」
+state "導向授權頁\n(Redirecting)" as Redirecting <<redirect>>
+
+Redirecting --> Exchanging : 取得 code → POST /auth/login
+state "交換 Token 中\n(Exchanging Code)" as Exchanging <<verifying>>
+
+Exchanging --> Authenticated : 換得 access_token & user info → 發 JWT
+state "已登入\n(Authenticated)" as Authenticated <<auth>>
+
+Exchanging --> Failed : 交換失敗 / 無效 code
+state "失敗\n(Failed)" as Failed <<error>>
+Failed --> Idle : 回首頁／重試登入
+
+Authenticated --> LoggedOut : 使用者點「登出」\n或 JWT 失效
+state "已登出\n(Logged Out)" as LoggedOut <<terminal>>
+LoggedOut --> Idle : 重新整理頁面 / 再次登入
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+hide empty description
+
+
+[*] --> Draft : 使用者開「新增風險」頁
+state "草稿\n(Draft)" as Draft <<draft>>
+
+Draft --> PendingApproval : POST /risk/ + 送 Approval
+state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
+
+PendingApproval --> Approved  : approval_completed
+PendingApproval --> Rejected  : approval_rejected
+state "被退回\n(Rejected)" as Rejected <<error>>
+Rejected --> Draft : 編輯後重新送審
+
+state "已核准\n(Approved)" as Approved <<approval>>
+Approved --> Calculating : 取得 Asset Setting\n→ 套公式計算
+state "計算中\n(Calculating)" as Calculating <<calc>>
+
+Calculating --> Active : 儲存 Risk Result
+state "已生效\n(Active)" as Active <<active>>
+
+Active --> Displaying : GET /risk/{asset_id}/force-directed
+state "顯示中\n(Displaying)" as Displaying <<display>>
+Displaying --> Active : 關閉視圖
+
+Active --> Archived : 風險已過期 / 封存
+state "已封存\n(Archived)" as Archived <<terminal>>
+
+Active --> Deleted  : 刪除風險記錄
+state "已刪除\n(Deleted)" as Deleted  <<terminal>>
+@enduml
