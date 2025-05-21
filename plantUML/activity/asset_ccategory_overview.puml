@@ -1,5 +1,5 @@
 @startuml asset_overview_activity
-
+title 資產分類一覽表
 start
 
 :載入資產分類一覽表頁面;
