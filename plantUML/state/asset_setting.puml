@@ -1,5 +1,6 @@
 @startuml
 
+left to right direction
 hide empty description
 
 [*] --> Draft : 使用者點擊「編輯資產設定」\nGET /asset-setting/

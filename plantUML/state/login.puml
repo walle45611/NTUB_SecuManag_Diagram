@@ -1,5 +1,9 @@
 @startuml
 
+left to right direction
+hide empty description
+
+[*] --> Init : 使用者挑檔案
 
 [*] --> Idle
 state "未登入\n(Idle)" as Idle <<idle>>

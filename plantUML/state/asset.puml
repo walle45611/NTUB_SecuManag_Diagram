@@ -1,5 +1,6 @@
 @startuml
 
+left to right direction
 hide empty description
 
 [*] --> Draft : 開啟「新增資產」頁面
