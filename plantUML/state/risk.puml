@@ -1,6 +1,7 @@
 @startuml
-hide empty description
 
+left to right direction
+hide empty description
 
 [*] --> Draft : 使用者開「新增風險」頁
 state "草稿\n(Draft)" as Draft <<draft>>
