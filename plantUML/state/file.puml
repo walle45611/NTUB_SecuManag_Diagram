@@ -1,6 +1,5 @@
 @startuml
 
-left to right direction
 hide empty description
 
 [*] --> Init : 使用者挑檔案
