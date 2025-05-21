@@ -1,5 +1,5 @@
 @startuml edit_asset_activity
-
+title 修改資產
 start
 
 :載入修改資產頁面;
