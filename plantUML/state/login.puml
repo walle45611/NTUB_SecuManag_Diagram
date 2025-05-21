@@ -1,5 +1,6 @@
 @startuml
 
+hide empty description
 
 [*] --> Idle
 state "未登入\n(Idle)" as Idle <<idle>>
