@@ -1,6 +1,7 @@
 @startuml
 
 hide empty description
+scale 700 height
 
 [*] --> Draft : 使用者點擊「編輯資產設定」\nGET /asset-setting/
 state "草稿\n(Draft)" as Draft <<draft>>
