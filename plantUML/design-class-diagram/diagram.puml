@@ -1,5 +1,7 @@
 @startuml
 
+left to right direction
+
 class alembic_version {
   varchar(32) version_num
 }
