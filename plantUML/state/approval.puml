@@ -2,6 +2,7 @@
 
 left to right direction
 hide empty description
+scale 350 width
 
 [*] --> Approval_process: 發送核准請求
 state Approval_process{

@@ -1,7 +1,6 @@
 @startuml
-
-left to right direction
 hide empty description
+
 
 [*] --> Draft : 開啟「新增威脅／弱點」頁
 state "草稿\n(Draft)" as Draft <<draft>>

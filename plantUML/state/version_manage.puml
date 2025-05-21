@@ -1,7 +1,6 @@
 @startuml
-
-left to right direction
 hide empty description
+
 
 [*] --> Draft : 使用者「新增／修改物件」
 state "草稿\n(Draft)" as Draft <<draft>>
