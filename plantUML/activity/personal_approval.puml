@@ -1,0 +1,30 @@
+@startuml
+title 個人核准
+start
+
+:載入個人核准頁面;
+
+:顯示使用者尚未處理的核准項目卡片
+(簽核 ID、名稱、複製按鈕、核准按鈕、拒絕按鈕);
+
+partition "使用者互動" {
+
+    if (點選複製簽核 ID?) then (是)
+        :複製簽核 ID 至剪貼簿;
+    endif
+
+    fork
+        if (點選「核准」?) then (是)
+            :標記該筆資料為「核准」;
+            :更新狀態;
+        endif
+    fork again
+        if (點選「拒絕」?) then (是)
+            :標記該筆資料為「拒絕」;
+            :更新狀態;
+        endif
+    end fork
+}
+
+stop
+@enduml
