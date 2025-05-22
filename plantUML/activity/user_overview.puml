@@ -1,0 +1,22 @@
+@startuml asset_overview_activity
+title 使用者一覽表
+start
+
+:載入使用者一覽表頁面;
+
+:顯示使用者清單與欄位
+(ID、名稱、帳號、角色、狀態);
+
+partition "使用者互動" {
+    if (調整每頁顯示行數?) then (是)
+        :重新載入使用者清單 (依據行數設定);
+    endif
+
+    if (輸入搜尋關鍵字?) then (是)
+        :過濾使用者清單 (根據搜尋條件);
+    endif
+}
+
+stop
+
+@enduml
