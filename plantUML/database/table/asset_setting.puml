@@ -1,0 +1,19 @@
+@startuml
+title
+  AssetSetting Model
+  |= 欄位名稱                          |= 欄位型態   |= 是否可空 | 主鍵/外來鍵/限制           |= 描述               |
+  | id                                | UUID       | 否       | PK                        | 設定唯一識別碼      |
+  | version_group_id                  | varchar    | 否       | Not Null                  | 設定群組名稱        |
+  | is_current                        | boolean    | 否       | Not Null, Default         | 是否為目前版本      |
+  | created_time                      | Datetime   | 否       | Not Null, Default         | 創建時間            |
+  | name                              | varchar    | 否       | Not Null                  | 設定名稱            |
+  | description                       | varchar    | 否       | Not Null                  | 設定描述            |
+  | high_risk                         | float      | 否       | Not Null                  | 高風險門檻          |
+  | medium_risk                       | float      | 否       | Not Null                  | 中風險門檻          |
+  | low_risk                          | float      | 否       | Not Null                  | 低風險門檻          |
+  | calculation_formula               | varchar    | 是       |                          | 計算公式            |
+  | calculation_formula_description   | varchar    | 是       |                          | 計算公式描述        |
+  | custom_fields                     | JSONB      | 是       |                          | 自定義欄位          |
+  | parent_id                         | UUID       | 是       | FK → asset_setting        | 父設定的識別碼      |
+end title
+@enduml

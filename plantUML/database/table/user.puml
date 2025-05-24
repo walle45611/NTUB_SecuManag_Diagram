@@ -1,0 +1,16 @@
+@startuml
+title
+  User Model
+  |= 欄位名稱          |= 欄位型態   |= 是否可空 | 主鍵/外來鍵/限制       |= 描述           |
+  | id               | UUID        | 否       | PK                    | 使用者唯一識別碼 |
+  | version_group_id | varchar     | 否       | Not Null              | 群組名稱        |
+  | is_current       | boolean     | 否       | Not Null, Default     | 是否目前版本    |
+  | created_time     | Datetime    | 否       | Not Null, Default     | 創建時間        |
+  | account          | varchar     | 否       | Not Null              | 帳號            |
+  | username         | varchar     | 否       | Not Null              | 使用者名        |
+  | session_start_time | Datetime  | 是       |                       | 會話開始時間    |
+  | session_end_time | Datetime    | 是       |                       | 會話結束時間    |
+  | is_active        | boolean     | 否       | Not Null, Default     | 是否啟用        |
+  | parent_id        | UUID        | 是       | FK → user              | 父使用者 ID     |
+end title
+@enduml
