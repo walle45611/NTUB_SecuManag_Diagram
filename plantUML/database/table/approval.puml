@@ -1,0 +1,17 @@
+@startuml
+title
+  Approval Model
+  |= 欄位名稱               |= 欄位型態             |= 是否可空 | 主鍵/外來鍵/限制         |= 描述               |
+  | id                     | UUID                 | 否       | PK                      | 審批唯一識別碼      |
+  | name                   | varchar              | 否       | Not Null                | 審批名稱            |
+  | description            | varchar              | 是       |                          | 簽核說明            |
+  | related_object_id      | UUID                 | 否       | Not Null                | 關聯物件 ID         |
+  | related_object_category| varchar (enum)       | 否       | Not Null, Default       | 關聯物件類別        |
+  | action_type            | varchar (enum)       | 否       | Default                 | 動作類型            |
+  | final_status           | varchar (enum)       | 否       | Not Null, Default       | 最終狀態            |
+  | signers                | JSONB                | 否       | Not Null                | 核准人清單          |
+  | delay_count            | integer              | 否       | Default                 | 延遲次數            |
+  | uploadfile_entity_id   | UUID                 | 否       | FK → uploadfile_entity  | 上傳檔案實體 ID     |
+  | created_time           | Datetime             | 否       | Not Null, Default       | 創建時間            |
+end title
+@enduml

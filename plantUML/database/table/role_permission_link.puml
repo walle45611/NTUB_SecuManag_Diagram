@@ -1,0 +1,8 @@
+@startuml
+title
+  RolePermissionLink Model
+  |= 欄位名稱     |= 欄位型態   |= 是否可空 | 主鍵/外來鍵/限制       |= 描述           |
+  | role_id      | UUID        | 否       | PK, FK → role         | 角色 ID        |
+  | permission_id| integer     | 否       | PK, FK → permission   | 權限 ID        |
+end title
+@enduml
