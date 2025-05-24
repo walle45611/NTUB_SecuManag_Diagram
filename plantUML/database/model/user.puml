@@ -1,0 +1,66 @@
+@startuml
+' skinparam linetype ortho
+left to right direction
+
+entity "user" as USR {
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
+    account               : string    {not null}
+    username              : string    {not null}
+    session_start_time    : datetime  {nullable}
+    session_end_time      : datetime  {nullable}
+    is_active             : bool      {not null, default: true}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    parent_id             : UUID      <<FK>>  {references user(id)}
+}
+USR ||--o{ USR : children
+
+note on link
+  FK user.id → user_permission_link.user_id
+  FK user.id → user_role_link.user_id
+  FK role.id → user_role_link.role_id
+  FK role.id → role_permission_link.role_id
+  FK permission.id → user_permission_link.permission_id
+  FK permission.id → role_permission_link.permission_id
+end note
+
+entity "role" as ROL {
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
+    name                  : string    {not null}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    parent_id             : UUID      <<FK>>  {references role(id)}
+}
+ROL ||--o{ ROL : children
+
+entity "permission" as PER {
+    id    : integer   <<PK>>  {not null}
+    name  : string    {not null}
+    path  : string    {not null}
+}
+
+entity "user_permission_link" as UPL {
+    user_id        : UUID      <<FK>>  {not null, references user(id)}
+    permission_id  : integer   <<FK>>  {not null, references permission(id)}
+}
+USR ||--o{ UPL : user_permissions
+PER ||--o{ UPL : permission_users
+
+entity "role_permission_link" as RPL {
+    role_id        : UUID      <<FK>>  {not null, references role(id)}
+    permission_id  : integer   <<FK>>  {not null, references permission(id)}
+}
+ROL ||--o{ RPL : role_permissions
+PER ||--o{ RPL : permission_roles
+
+entity "user_role_link" as URL {
+    user_id   : UUID      <<FK>>  {not null, references user(id)}
+    role_id   : UUID      <<FK>>  {not null, references role(id)}
+}
+USR ||--o{ URL : user_roles
+ROL ||--o{ URL : role_users
+@enduml

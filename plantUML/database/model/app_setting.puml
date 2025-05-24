@@ -1,0 +1,27 @@
+@startuml
+' skinparam linetype ortho
+
+entity "app_setting" as APS {
+    created_time          : datetime  {not null, default: now() }
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    parent_id             : UUID      <<FK>>  {references app_setting(id)}
+    uploadfile_entity_id  : UUID      <<FK>>  {references uploadfile_entity(id)}
+}
+APS ||--o{ APS : children
+
+note on link
+    FK uploadfile_entity_id → uploadfile_entity.id
+end note
+
+entity "uploadfile_entity" as UPE {
+    name : string {not null}
+    path : string {not null}
+    --
+    id   : UUID   <<PK>> {not null, default: uuid_generate_v4()}
+}
+UPE ||--o{ APS : app_settings
+
+@enduml
