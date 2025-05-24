@@ -1,0 +1,46 @@
+@startuml
+' skinparam linetype ortho
+
+entity "document" as DOC {
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
+    level                 : integer   {not null}
+    name                  : string    {not null}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    uploadfile_entity_id  : UUID      <<FK>>  {nullable, references uploadfile_entity(id)}
+    creator_id            : UUID      <<FK>>  {references user(id)}
+    parent_id             : UUID      <<FK>>  {references document(id)}
+}
+DOC ||--o{ DOC : children
+
+note on link
+    FK creator_id → user.id
+    FK uploadfile_entity_id → uploadfile_entity.id
+end note
+
+entity "uploadfile_entity" as UPE {
+    name : string {not null}
+    path : string {not null}
+    --
+    id   : UUID   <<PK>> {not null, default: uuid_generate_v4()}
+}
+UPE ||--o{ DOC : documents
+
+entity "user" as USR {
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
+    account               : string    {not null}
+    username              : string    {not null}
+    session_start_time    : datetime  {nullable}
+    session_end_time      : datetime  {nullable}
+    is_active             : bool      {not null, default: true}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    parent_id             : UUID      <<FK>>  {references user(id)}
+}
+USR ||--o{ USR : children
+USR ||--o{ DOC : creator
+@enduml
