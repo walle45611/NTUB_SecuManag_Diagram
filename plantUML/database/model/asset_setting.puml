@@ -1,5 +1,5 @@
 @startuml
-' skinparam linetype ortho
+skinparam linetype ortho
 
 
 entity "asset_setting" as ASTS {
@@ -20,9 +20,9 @@ entity "asset_setting" as ASTS {
 }
 ASTS ||--o{ ASTS : children
 
-note on link
-  FK formula_variable.asset_setting_id → asset_setting.id
-end note
+' note right of ASTS
+'   FK formula_variable.asset_setting_id → asset_setting.id
+' end note
 
 entity "formula_variable" as FOV {
     name               : string    {not null}

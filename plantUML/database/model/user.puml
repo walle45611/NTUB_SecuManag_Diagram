@@ -17,14 +17,14 @@ entity "user" as USR {
 }
 USR ||--o{ USR : children
 
-note on link
-  FK user.id → user_permission_link.user_id
-  FK user.id → user_role_link.user_id
-  FK role.id → user_role_link.role_id
-  FK role.id → role_permission_link.role_id
-  FK permission.id → user_permission_link.permission_id
-  FK permission.id → role_permission_link.permission_id
-end note
+' note on link
+'   FK user.id → user_permission_link.user_id
+'   FK user.id → user_role_link.user_id
+'   FK role.id → user_role_link.role_id
+'   FK role.id → role_permission_link.role_id
+'   FK permission.id → user_permission_link.permission_id
+'   FK permission.id → role_permission_link.permission_id
+' end note
 
 entity "role" as ROL {
     version_group_id      : string    {not null}

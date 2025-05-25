@@ -1,5 +1,6 @@
 @startuml
 ' skinparam linetype ortho
+left to right direction
 
 entity "document" as DOC {
     version_group_id      : string    {not null}
@@ -15,10 +16,10 @@ entity "document" as DOC {
 }
 DOC ||--o{ DOC : children
 
-note on link
-    FK creator_id → user.id
-    FK uploadfile_entity_id → uploadfile_entity.id
-end note
+' note on link
+'     FK creator_id → user.id
+'     FK uploadfile_entity_id → uploadfile_entity.id
+' end note
 
 entity "uploadfile_entity" as UPE {
     name : string {not null}

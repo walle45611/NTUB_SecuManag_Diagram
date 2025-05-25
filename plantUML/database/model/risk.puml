@@ -1,5 +1,6 @@
 @startuml
 ' skinparam linetype ortho
+left to right direction
 
 entity "risk" as RSK {
     version_group_id      : string    {not null}
@@ -15,12 +16,12 @@ entity "risk" as RSK {
 }
 RSK ||--o{ RSK : children
 
-note on link
-    FK asset_id → asset.id
-    FK threat_id → threat.id
-    FK vulnerability_id → vulnerability.id
-    FK risk_control_id → risk_control.id
-end note
+' note on link
+'     FK asset_id → asset.id
+'     FK threat_id → threat.id
+'     FK vulnerability_id → vulnerability.id
+'     FK risk_control_id → risk_control.id
+' end note
 
 entity "asset" as AST {
     version_group_id      : string    {not null}
