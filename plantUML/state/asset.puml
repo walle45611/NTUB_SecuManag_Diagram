@@ -26,8 +26,6 @@ state "啟用中(Active)" as Active <<active>> {
   Editing --> InUse : 儲存成功
 }
 
-Active --> Archived : 封存 / 停用
+Active --> Archived : 停用設定並將文件封存
 state "已封存(Archived)" as Archived <<terminal>>
-Active --> Deleted  : 刪除資產
-state "已刪除(Deleted)"  as Deleted  <<terminal>>
 @enduml
