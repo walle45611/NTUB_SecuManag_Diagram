@@ -1,0 +1,32 @@
+@startuml document_management
+
+left to right direction
+
+actor 使用者
+
+package "文件" {
+    usecase "檢查權限" as UC12
+    usecase "瀏覽文件類別" as UC1
+    usecase "檢視文件欄位\n（ID、名稱、建立日期、等級、狀態、操作）" as UC2
+    usecase "選擇每頁顯示筆數" as UC3
+    usecase "搜尋文件資料" as UC4
+    usecase "修改文件條目" as UC5
+    usecase "刪除文件條目" as UC6
+    usecase "＋新增文件" as UC7
+    usecase "匯入文件後自動創建核准項目" as UC10
+    usecase "手動核准項目" as UC11
+}
+
+使用者 --> UC12
+UC12 .down.> UC1 : <<include>>
+UC12 .down.> UC5 : <<include>>
+UC12 .down.> UC6 : <<include>>
+UC12 .down.> UC7 : <<include>>
+UC12 .down.> UC10 : <<include>>
+
+UC1 .down.> UC4 : <<include>>
+UC5 .down.> UC11 : <<include>>
+UC6 .down.> UC11 : <<include>>
+UC7 .down.> UC11 : <<include>>
+
+@enduml
