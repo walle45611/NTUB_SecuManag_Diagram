@@ -92,16 +92,6 @@ class Asset {
   + parent_id : UUID
 }
 
-class Assignment {
-  + id : Integer
-  + description : String
-  + start_date : DateTime
-  + end_date : DateTime
-  + manager : String
-  + job_name : String
-  + created_time : DateTime
-}
-
 class Document {
   + id : UUID
   + level : Integer

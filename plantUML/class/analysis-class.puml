@@ -1,0 +1,260 @@
+@startuml
+' skin rose
+skinparam classAttributeIconSize 0
+
+class Announcement {
+  + id : UUID
+  + date : DateTime
+  + title : String
+  + description : String
+  + is_show : Boolean
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class AppSetting {
+  + id : UUID
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Approval {
+  + id : UUID
+  + name : String
+  + description : String
+  + related_object_id : UUID
+  + related_object_category : RelatedObjectCategory
+  + action_type : ActionType
+  + final_status : ApprovalStatus
+  + signers : JSONB
+  + delay_count : Integer
+  + uploadfile_entity_id : UUID
+  + created_time : DateTime
+}
+
+class AssetCategory {
+  + id : UUID
+  + name : String
+  + description : String
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class AssetSetting {
+  + id : UUID
+  + name : String
+  + description : String
+  + high_risk : Float
+  + medium_risk : Float
+  + low_risk : Float
+  + calculation_formula : String
+  + calculation_formula_description : String
+  + custom_fields : JSONB
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Asset {
+  + id : UUID
+  + name : String
+  + description : String
+  + value : Float
+  + custom_fields : JSON
+  + asset_category_id : UUID
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Document {
+  + id : UUID
+  + level : Integer
+  + name : String
+  + uploadfile_entity_id : UUID
+  + creator_id : UUID
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class FormulaVariable {
+  + id : Integer
+  + name : String
+  + description : String
+  + value : Float
+  + asset_setting_id : UUID
+}
+
+class Permission {
+  + id : Integer
+  + name : String
+  + path : String
+}
+
+class RiskControl {
+  + id : UUID
+  + name : String
+  + description : String
+  + risk_id : UUID
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Risk {
+  + id : UUID
+  + value : Float
+  + asset_id : UUID
+  + threat_id : UUID
+  + vulnerability_id : UUID
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class RolePermissionLink {
+  + role_id : UUID
+  + permission_id : Integer
+}
+
+class Role {
+  + id : UUID
+  + name : String
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Threat {
+  + id : UUID
+  + name : String
+  + description : String
+  + value : Float
+  + type : CiaType
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class UploadfileEntity {
+  + id : UUID
+  + name : String
+  + path : String
+}
+
+class UserPermissionLink {
+  + user_id : UUID
+  + permission_id : Integer
+}
+
+class UserRoleLink {
+  + user_id : UUID
+  + role_id : UUID
+}
+
+class User {
+  + id : UUID
+  + account : String
+  + username : String
+  + session_start_time : DateTime
+  + session_end_time : DateTime
+  + is_active : Boolean
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+class Vulnerability {
+  + id : UUID
+  + name : String
+  + description : String
+  + value : Float
+  + type : CiaType
+  + version_group_id : varchar
+  + is_current : Boolean
+  + created_time : DateTime
+  + parent_id : UUID
+}
+
+' Relationships '
+Announcement --> "0..*" Announcement : children
+Announcement o-- "0..*" Approval : approvals
+
+AppSetting --> "0..*" AppSetting : children
+AppSetting o-- "0..*" Approval : approvals
+
+AssetCategory --> "0..*" AssetCategory : children
+AssetCategory o-- "0..*" Asset : assets
+AssetCategory o-- "0..*" Approval : approvals
+
+AssetSetting --> "0..*" AssetSetting : children
+AssetSetting o-- "0..*" FormulaVariable : formula_variable
+AssetSetting o-- "0..*" Approval : approvals
+
+Asset --> "0..*" Asset : children
+Asset o-- "0..*" Risk : risks
+Asset --> AssetCategory : asset_category
+Asset o-- "0..*" Approval : approvals
+
+Document --> "0..*" Document : children
+Document --> UploadfileEntity : uploadfile_entity
+Document --> User : creator
+Document o-- "0..*" Approval : approvals
+
+UploadfileEntity o-- "0..*" Document : documents
+UploadfileEntity o-- "0..*" Approval : approvals
+
+Approval --> UploadfileEntity : uploadfile_entity
+
+FormulaVariable --> AssetSetting : asset_setting
+FormulaVariable o-- "0..*" Approval : approvals
+
+Risk --> "0..*" Risk : children
+Risk --> Asset : asset
+Risk --> Threat : threat
+Risk --> Vulnerability : vulnerability
+Risk o-- "0..*" RiskControl : risk_controls
+Risk o-- "0..*" Approval : approvals
+
+RiskControl --> Risk : risk
+RiskControl --> "0..*" RiskControl : children
+RiskControl o-- "0..*" Approval : approvals
+
+RolePermissionLink --> Role : role
+RolePermissionLink --> Permission : permission
+
+UserPermissionLink --> User : user
+UserPermissionLink --> Permission : permission
+
+UserRoleLink --> User : user
+UserRoleLink --> Role : role
+
+Role --> "0..*" Role : children
+Role o-- "0..*" Approval : approvals
+
+User --> "0..*" User : children
+User o-- "0..*" Approval : approvals
+
+Threat --> "0..*" Threat : children
+Threat o-- "0..*" Risk : risks
+Threat o-- "0..*" Approval : approvals
+
+Vulnerability --> "0..*" Vulnerability : children
+Vulnerability o-- "0..*" Risk : risks
+Vulnerability o-- "0..*" Approval : approvals
+@enduml
