@@ -20,9 +20,7 @@ state "評估中\n(Assessing)" as Assessing <<assess>>
 Assessing --> Active : AI Module 寫入 DB 完成
 state "已生效\n(Active)" as Active <<active>>
 
-Active --> Archived : 封存 / 停用
+Active --> Archived : 停用並將文件封存
 state "已封存\n(Archived)" as Archived <<terminal>>
 
-Active --> Deleted : 刪除威脅／弱點
-state "已刪除\n(Deleted)" as Deleted <<terminal>>
 @enduml

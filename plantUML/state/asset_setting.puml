@@ -26,6 +26,6 @@ state "啟用中\n(Active)" as Active <<active>> {
 
 Approved --> Active : Backend 更新 DB\n→ 觸發 Service 重算
 
-Active --> Archived : 停用設定
+Active --> Archived : 停用設定並將文件封存
 state "已封存\n(Archived)" as Archived <<terminal>>
 @enduml

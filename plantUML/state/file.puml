@@ -22,7 +22,4 @@ Available --> Previewing : 使用者開啟 URL
 state "預覽中\n(Previewing)" as Previewing <<preview>>
 Previewing --> Available : 關閉預覽頁
 
-Available --> Deleted : 刪除檔案
-Stored --> Deleted    : 直接刪除 (未曾預覽亦可)
-state "已刪除\n(Deleted)" as Deleted <<terminal>>
 @enduml
