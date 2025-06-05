@@ -15,7 +15,9 @@ gantt
     section Sprint 5
         AI 摘要、風險值強化與建議產生:05-01, 41d
     section Sprint 6
-        整合測試         :06-13, 50d
+        內部稽核模組: 06-14, 35d
+    section Sprint 7
+        整合測試         :07-25, 50d
     section document
         文件撰寫         :04-01, 66d
 ```
