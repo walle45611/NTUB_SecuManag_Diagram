@@ -9,16 +9,16 @@ class Announcement {
   + description : String
   + is_show : Boolean
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
 class AppSetting {
   + id : UUID
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -34,6 +34,19 @@ class Approval {
   + delay_count : Integer
   + uploadfile_entity_id : UUID
   + created_time : DateTime
+
+  - _parse_datetime(dt_value) : DateTime
+  - _calculate_time_diff(deadline) : timedelta
+  - _check_previous_signers(index)
+  - _get_first_user_id() : UUID
+  + get_final_status() : ApprovalStatus
+  + ensure_pending()
+  + get_signer_index(user_id : UUID) : int
+  + get_pending_signers(user_id : UUID)
+  + adjust_signer_deadlines(index)
+  + approve_signer(user_id : UUID)
+  + apply_signer_action(user_id : UUID, is_reject : bool) : ApprovalStatus
+  + submit()
 }
 
 class AssetCategory {
@@ -41,24 +54,21 @@ class AssetCategory {
   + name : String
   + description : String
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
-class AssetSetting {
+class IsmsSetting {
   + id : UUID
   + name : String
   + description : String
-  + high_risk : Float
-  + medium_risk : Float
-  + low_risk : Float
   + calculation_formula : String
   + calculation_formula_description : String
   + custom_fields : JSONB
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -66,12 +76,12 @@ class Asset {
   + id : UUID
   + name : String
   + description : String
-  + value : Float
+  + value : float
   + custom_fields : JSON
   + asset_category_id : UUID
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -82,8 +92,8 @@ class Document {
   + uploadfile_entity_id : UUID
   + creator_id : UUID
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -91,8 +101,30 @@ class FormulaVariable {
   + id : Integer
   + name : String
   + description : String
-  + value : Float
+  + value : float
   + asset_setting_id : UUID
+}
+
+class HightRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day: int
+}
+
+class MediumRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day: int
+}
+
+
+class LowRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day: int
 }
 
 class Permission {
@@ -107,21 +139,30 @@ class RiskControl {
   + description : String
   + risk_id : UUID
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
 class Risk {
+  ' 風險實體 - 系統核心的風險評估結果
   + id : UUID
-  + value : Float
+  + final_state : RiskProcessingState
+  + original_value : float
+  + final_value : int
+  + reduce_value : int
   + asset_id : UUID
   + threat_id : UUID
   + vulnerability_id : UUID
+  + treatment_strategy : RiskTreatmentStrategy
+  + is_trackable : boolean
+  + tracking_interval_days : int
   + version_group_id : varchar
-  + is_current : Boolean
+  + is_current : boolean
   + created_time : DateTime
   + parent_id : UUID
+  ' 業務方法
+  + validate_deletion(has_related_data : bool) : void
 }
 
 class RolePermissionLink {
@@ -133,8 +174,8 @@ class Role {
   + id : UUID
   + name : String
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -142,11 +183,11 @@ class Threat {
   + id : UUID
   + name : String
   + description : String
-  + value : Float
+  + value : float
   + type : CiaType
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -174,8 +215,8 @@ class User {
   + session_end_time : DateTime
   + is_active : Boolean
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -183,15 +224,20 @@ class Vulnerability {
   + id : UUID
   + name : String
   + description : String
-  + value : Float
+  + value : float
   + type : CiaType
   + version_group_id : varchar
-  + is_current : Boolean
-  + created_time : DateTime
+  + is_current : boolean
+  + created_time : Datetime
   + parent_id : UUID
 }
 
-' Relationships '
+
+' =====================================
+' 關係定義 (Relationships)
+' =====================================
+
+' 系統公告關係
 Announcement --> "0..*" Announcement : children
 Announcement o-- "0..*" Approval : approvals
 
@@ -202,9 +248,12 @@ AssetCategory --> "0..*" AssetCategory : children
 AssetCategory o-- "0..*" Asset : assets
 AssetCategory o-- "0..*" Approval : approvals
 
-AssetSetting --> "0..*" AssetSetting : children
-AssetSetting o-- "0..*" FormulaVariable : formula_variable
-AssetSetting o-- "0..*" Approval : approvals
+IsmsSetting --> "0..*" IsmsSetting : children
+IsmsSetting o-- "0..*" FormulaVariable : formula_variable
+IsmsSetting o-- "0..*" HightRiskSetting : hight_risk_setting
+IsmsSetting o-- "0..*" MediumRiskSetting : medium_risk_setting
+IsmsSetting o-- "0..*" LowRiskSetting : low_risk_setting
+IsmsSetting o-- "0..*" Approval : approvals
 
 Asset --> "0..*" Asset : children
 Asset o-- "0..*" Risk : risks
@@ -221,8 +270,12 @@ UploadfileEntity o-- "0..*" Approval : approvals
 
 Approval --> UploadfileEntity : uploadfile_entity
 
-FormulaVariable --> AssetSetting : asset_setting
+FormulaVariable --> IsmsSetting : asset_setting
 FormulaVariable o-- "0..*" Approval : approvals
+
+HightRiskSetting --> IsmsSetting : isms_setting
+MediumRiskSetting --> IsmsSetting : isms_setting
+LowRiskSetting --> IsmsSetting : isms_setting
 
 Risk --> "0..*" Risk : children
 Risk --> Asset : asset

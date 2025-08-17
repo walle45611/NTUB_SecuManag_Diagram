@@ -1,0 +1,24 @@
+@startuml
+actor User as "使用者"
+participant Frontend
+participant Backend
+participant "AI Module" as AI
+participant Database
+participant MinIO
+
+User ->> Frontend: 進入document頁面查看已歸檔文件
+Frontend ->> Backend: GET /api/system/document/
+Backend ->> Database: 查詢已歸檔的文件列表
+Database -->> Backend: 回傳已歸檔文件資料
+Backend -->> Frontend: 回傳文件列表
+Frontend -->> User: 顯示已歸檔的文件列表
+
+User ->> Frontend: 點擊「AI 文件摘要」按鈕
+Frontend ->> Backend: POST /api/system/document/summarize/{document_id}
+Backend ->> Database: 讀取已歸檔的文件內容
+Database -->> Backend: 回傳 embed 的文件內容
+Backend ->> AI: 調用 AI 模型進行文件摘要
+AI -->> Backend: 回傳文件摘要結果
+Backend -->> Frontend: 回傳 AI 摘要完整結果
+Frontend -->> User: 顯示文件摘要與分析結果
+@enduml
