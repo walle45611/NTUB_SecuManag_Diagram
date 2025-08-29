@@ -1,0 +1,92 @@
+@startuml
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 40
+skinparam ParticipantPadding 5
+skinparam BoxPadding 3
+skinparam minClassWidth 35
+skinparam ArrowFontSize 10
+skinparam ParticipantFontSize 11
+skinparam sequence {
+    ArrowThickness 1
+    LifeLineBorderThickness 1
+    ParticipantBorderThickness 1
+    MessageAlignment center
+}
+skinparam DefaultFontSize 10
+skinparam NoteBackgroundColor #FFFFCC
+skinparam NoteBorderThickness 1
+
+actor User as "使用者"
+participant Frontend
+participant Backend
+participant Ollama
+participant Qwen
+participant "mxbai-embed-large" as MxbaiEmbed
+participant PGVector
+participant Database
+participant MinIO
+participant RabbitMQ
+participant Consumer
+participant Email
+actor Approver as "簽核者"
+
+legend right
+  |= 顏色 |= 業務階段 |
+  |<#0066CC>     | AI 智慧評估 |
+  |<#009900>     | 檔案上傳處理 |
+  |<#FF6600>     | 簽核提交流程 |
+  |<#CC0000>     | 逾時處理機制 |
+  |<#9900CC>     | 簽核確認完成 |
+endlegend
+
+note over Ollama, MxbaiEmbed #EEEEEE: 系統初始化階段
+activate Ollama
+activate Qwen
+activate MxbaiEmbed
+note over Ollama, MxbaiEmbed: 服務就緒，等待請求
+
+deactivate Ollama
+deactivate Qwen
+deactivate MxbaiEmbed
+
+User -[#0066CC]>> Frontend: 點選評估按鈕
+Frontend -[#0066CC]>> Backend: POST /api/isms/asset/evaluate
+Backend -[#0066CC]>> Ollama: 調用 AI 服務
+Ollama -[#0066CC]>> PGVector: 向量搜尋服務
+PGVector -[#0066CC]>> Database: 搜尋 embed 資料
+Database --[#0066CC]>> PGVector: 回傳搜尋結果
+PGVector --[#0066CC]>> Ollama: 回傳向量搜尋結果
+Ollama -[#0066CC]>> Qwen: 調用 Qwen 模型總結
+Qwen --[#0066CC]>> Ollama: 回傳 AI 總結結果
+Ollama --[#0066CC]>> Backend: 回傳完整評估結果
+Backend --[#0066CC]>> Frontend: 評估結果
+User -[#009900]>> Frontend: 上傳圖片
+Frontend -[#009900]>> Backend: POST /api/system/uploadfile
+Backend -[#009900]>> MinIO: PUT 檔案
+Backend -[#009900]>> Database: INSERT 檔案記錄
+Backend --[#009900]>> Frontend: 上傳成功
+User -[#FF6600]>> Frontend: 送出簽核
+Frontend -[#FF6600]>> Backend: POST /api/isms/asset/
+Backend -[#FF6600]>> Backend: 暫存至 domain event
+Frontend -[#FF6600]>> Backend: POST /api/system/approval/
+Backend -[#FF6600]>> RabbitMQ: 發佈簽核訊息
+Backend -[#FF6600]>> Database: 儲存 asset + approval
+Backend -[#FF6600]>> Email: 發送通知
+Backend --[#FF6600]>> Frontend: 簽核提交成功
+RabbitMQ -[#CC0000]>> Consumer: TTL 過期
+Consumer -[#CC0000]>> RabbitMQ: 發佈至 DLQ
+Consumer -[#CC0000]>> Email: 過期提醒
+Approver -[#9900CC]>> Frontend: 簽核確認
+Frontend -[#9900CC]>> Backend: POST /api/system/approval/{id}/approved
+Backend -[#9900CC]>> RabbitMQ: 發佈完成訊息
+RabbitMQ -[#9900CC]>> Consumer: 接收訊息
+Consumer -[#9900CC]>> Ollama: 請求 embed 處理
+Ollama -[#9900CC]>> MxbaiEmbed: chunk 設定
+MxbaiEmbed -[#9900CC]>> MxbaiEmbed: 完成全部 chunk embedding 處理
+MxbaiEmbed --[#9900CC]>> PGVector: 傳送所有 embedding 向量
+PGVector -[#9900CC]>> Database: 批次新增 chunk 資料
+Consumer -[#9900CC]>> Database: 更新狀態
+Consumer -[#9900CC]>> Email: 完成通知
+Backend --[#9900CC]>> Frontend: 操作完成
+@enduml
