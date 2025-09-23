@@ -17,59 +17,47 @@ entity "approval" as APV {
     related_object_id       : UUID      <<FK>>  {not null, index, references announcement(id) when related_object_category='announcement'}
 }
 
-
-
-
-
-entity "vulnerability" as VUL {
-    version_group_id                : string    {not null}
-    is_current                      : bool      {not null, default: false}
-    created_time                    : datetime  {not null, default: now() }
-    name                            : string    {not null}
-    description                     : string    {not null}
-    value                           : float     {not null}
-    type                            : CiaType   {not null}
-    --
-    id                              : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id                       : UUID      <<FK>>  {references vulnerability(id)}
-}
-VUL ||--o{ VUL : children
-VUL ||--o{ APV : approvals
-
 entity "risk_control" as RSC {
-    version_group_id  : string    {not null}
-    is_current        : bool      {not null, default: false}
-    created_time      : datetime  {not null, default: now() }
-    name              : string    {not null}
-    description       : string    {not null}
+    name                    : string     {not null}
+    description             : text       {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    risk_id           : UUID      <<FK>>  {not null, references risk(id)}
-    parent_id         : UUID      <<FK>>  {references risk_control(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references risk_control(id)}
 }
 RSC ||--o{ RSC : children
 RSC ||--o{ APV : approvals
 
 entity "risk" as RSK {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
-    value                 : float     {not null}
+    final_state             : enum risk_processing_state {not null, default: 'unprocessed'} <index>
+    treatment_strategy      : enum risk_treatment_strategy {nullable} <index>
+    original_value          : float      {not null}
+    final_value             : integer    {nullable}
+    reduce_value            : integer    {nullable}
+    is_trackable            : bool       {not null, default: false}
+    tracking_interval_days  : integer    {nullable}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    asset_id              : UUID      <<FK>>  {not null, references asset(id)}
-    threat_id             : UUID      <<FK>>  {not null, references threat(id)}
-    vulnerability_id      : UUID      <<FK>>  {not null, references vulnerability(id)}
-    parent_id             : UUID      <<FK>>  {references risk(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    asset_id                : UUID       <<FK>> {not null, references asset(id)}
+    threat_id               : UUID       <<FK>> {not null, references threat(id)}
+    vulnerability_id        : UUID       <<FK>> {not null, references vulnerability(id)}
+    parent_id               : UUID       <<FK>> {references risk(id)}
 }
 RSK ||--o{ RSK : children
 RSK ||--o{ APV : approvals
 
 entity "role" as ROL {
+    name                  : string    {not null}
+    description           : text      {not null}
+    is_temp               : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
     version_group_id      : string    {not null}
     is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
-    name                  : string    {not null}
     --
     id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
     parent_id             : UUID      <<FK>>  {references role(id)}
@@ -86,12 +74,24 @@ entity "user" as USR {
     session_start_time    : datetime  {nullable}
     session_end_time      : datetime  {nullable}
     is_active             : bool      {not null, default: true}
+    is_temp               : bool      {not null, default: false}
     --
     id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    role_id               : UUID      <<FK>>  {not null, references role(id)}
     parent_id             : UUID      <<FK>>  {references user(id)}
 }
 USR ||--o{ USR : children
 USR ||--o{ APV : approvals
-@enduml
 
+entity "audit_title" as AUT {
+    name          : string(255)  {not null}
+    description   : text         {nullable}
+    created_time  : datetime     {not null, default: now()}
+    version_group_id : string    {not null}
+    is_current    : bool         {not null, default: false}
+    --
+    id            : UUID         <<PK>> {not null, default: uuid_generate_v4()}
+}
+AUT ||--o{ AUT : children
+AUT ||--o{ APV : approvals
 @enduml

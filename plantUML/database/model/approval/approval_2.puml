@@ -18,13 +18,13 @@ entity "approval" as APV {
 }
 
 entity "asset" as AST {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
     name                  : string    {not null}
     description           : string    {not null}
     value                 : float     {not null}
     custom_fields         : json      {nullable}
+    created_time          : datetime  {not null, default: now() }
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
     --
     id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
     parent_id             : UUID      <<FK>>  {references asset(id)}
@@ -33,31 +33,31 @@ entity "asset" as AST {
 AST ||--o{ AST : children
 AST ||--o{ APV : approvals
 
-entity "asset_setting" as ASTS {
-    version_group_id                : string    {not null}
-    is_current                      : bool      {not null, default: false}
-    created_time                    : datetime  {not null, default: now() }
+entity "isms_setting" as ISMSS {
     name                            : string    {not null}
     description                     : string    {not null}
-    high_risk                       : float     {not null}
-    medium_risk                     : float     {not null}
-    low_risk                        : float     {not null}
     calculation_formula             : string    {nullable}
     calculation_formula_description : string    {nullable}
     custom_fields                   : json      {nullable}
+    risk_notification_users         : list      {nullable}
+    threshold_min                   : float     {not null}
+    threshold_max                   : float     {not null}
+    created_time                    : datetime  {not null, default: now() }
+    version_group_id                : string    {not null}
+    is_current                      : bool      {not null, default: false}
     --
     id                              : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id                       : UUID      <<FK>>  {references asset_setting(id)}
+    parent_id                       : UUID      <<FK>>  {references isms_setting(id)}
 }
-ASTS ||--o{ ASTS : children
-ASTS ||--o{ APV : approvals
+ISMSS ||--o{ ISMSS : children
+ISMSS ||--o{ APV : approvals
 
 entity "document" as DOC {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
     level                 : integer   {not null}
     name                  : string    {not null}
+    created_time          : datetime  {not null, default: now() }
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
     --
     id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
     uploadfile_entity_id  : UUID      <<FK>>  {nullable, references uploadfile_entity(id)}
@@ -68,17 +68,32 @@ DOC ||--o{ DOC : children
 DOC ||--o{ APV : approvals
 
 entity "threat" as THR {
-    version_group_id                : string    {not null}
-    is_current                      : bool      {not null, default: false}
-    created_time                    : datetime  {not null, default: now() }
-    name                            : string    {not null}
-    description                     : string    {not null}
-    value                           : float     {not null}
-    type                            : CiaType   {not null}
+    name                    : string     {not null}
+    description             : text       {not null}
+    value                   : float      {not null}
+    type                    : enum CiaType    {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                              : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id                       : UUID      <<FK>>  {references threat(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references threat(id)}
 }
 THR ||--o{ THR : children
 THR ||--o{ APV : approvals
+
+entity "vulnerability" as VUL {
+    name                    : string     {not null}
+    description             : text       {not null}
+    value                   : float      {not null}
+    type                    : enum CiaType {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
+    --
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references vulnerability(id)}
+}
+VUL ||--o{ VUL : children
+VUL ||--o{ APV : approvals
 @enduml

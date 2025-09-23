@@ -102,7 +102,7 @@ class FormulaVariable {
   + name : String
   + description : String
   + value : float
-  + asset_setting_id : UUID
+  + isms_setting_id : UUID
 }
 
 class HightRiskSetting {
@@ -270,7 +270,7 @@ UploadfileEntity o-- "0..*" Approval : approvals
 
 Approval --> UploadfileEntity : uploadfile_entity
 
-FormulaVariable --> IsmsSetting : asset_setting
+FormulaVariable --> IsmsSetting : isms_setting
 FormulaVariable o-- "0..*" Approval : approvals
 
 HightRiskSetting --> IsmsSetting : isms_setting

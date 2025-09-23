@@ -3,83 +3,91 @@
 left to right direction
 
 entity "risk" as RSK {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
-    value                 : float     {not null}
+    final_state             : enum risk_processing_state {not null, default: 'unprocessed'} <index>
+    treatment_strategy      : enum risk_treatment_strategy {nullable} <index>
+    original_value          : float      {not null}
+    final_value             : integer    {nullable}
+    reduce_value            : integer    {nullable}
+    is_trackable            : bool       {not null, default: false}
+    tracking_interval_days  : integer    {nullable}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    asset_id              : UUID      <<FK>>  {not null, references asset(id)}
-    threat_id             : UUID      <<FK>>  {not null, references threat(id)}
-    vulnerability_id      : UUID      <<FK>>  {not null, references vulnerability(id)}
-    parent_id             : UUID      <<FK>>  {references risk(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    asset_id                : UUID       <<FK>> {not null, references asset(id)}
+    threat_id               : UUID       <<FK>> {not null, references threat(id)}
+    vulnerability_id        : UUID       <<FK>> {not null, references vulnerability(id)}
+    parent_id               : UUID       <<FK>> {references risk(id)}
 }
 RSK ||--o{ RSK : children
 
-' note on link
-'     FK asset_id → asset.id
-'     FK threat_id → threat.id
-'     FK vulnerability_id → vulnerability.id
-'     FK risk_control_id → risk_control.id
-' end note
-
 entity "asset" as AST {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
-    name                  : string    {not null}
-    description           : string    {not null}
-    value                 : float     {not null}
-    custom_fields         : json      {nullable}
+    name                    : string     {not null}
+    description             : text       {not null}
+    value                   : float      {not null}
+    custom_fields           : json       {nullable}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id             : UUID      <<FK>>  {references asset(id)}
-    asset_category_id     : UUID      <<FK>>  {not null, references asset_category(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references asset(id)}
+    asset_category_id       : UUID       <<FK>> {not null, references asset_category(id)}
 }
 AST ||--o{ AST : children
 AST ||--o{ RSK : risk
 
 entity "threat" as THR {
-    version_group_id                : string    {not null}
-    is_current                      : bool      {not null, default: false}
-    created_time                    : datetime  {not null, default: now() }
-    name                            : string    {not null}
-    description                     : string    {not null}
-    value                           : float     {not null}
-    type                            : CiaType   {not null}
+    name                    : string     {not null}
+    description             : text       {not null}
+    value                   : float      {not null}
+    type                    : enum CiaType    {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                              : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id                       : UUID      <<FK>>  {references threat(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references threat(id)}
 }
 THR ||--o{ THR : children
 THR ||--o{ RSK : risk
 
 entity "vulnerability" as VUL {
-    version_group_id                : string    {not null}
-    is_current                      : bool      {not null, default: false}
-    created_time                    : datetime  {not null, default: now() }
-    name                            : string    {not null}
-    description                     : string    {not null}
-    value                           : float     {not null}
-    type                            : CiaType   {not null}
+    name                    : string     {not null}
+    description             : text       {not null}
+    value                   : float      {not null}
+    type                    : enum CiaType {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                              : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id                       : UUID      <<FK>>  {references vulnerability(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references vulnerability(id)}
 }
 VUL ||--o{ VUL : children
 VUL ||--o{ RSK : risk
 
 entity "risk_control" as RSC {
-    version_group_id  : string    {not null}
-    is_current        : bool      {not null, default: false}
-    created_time      : datetime  {not null, default: now() }
-    name              : string    {not null}
-    description       : string    {not null}
+    name                    : string     {not null}
+    description             : text       {not null}
+    created_time            : datetime   {not null, default: now() }
+    version_group_id        : string     {not null}
+    is_current              : bool       {not null, default: false}
     --
-    id                : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    risk_id           : UUID      <<FK>>  {not null, references risk(id)}
+    id                      : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id               : UUID       <<FK>> {references risk_control(id)}
 }
 
 RSC ||--o{ RSC : children
-RSC ||--o{ RSK : risk
+
+entity "risk_risk_control_link" as RRCL {
+    --
+    risk_id                 : UUID <<PK, FK>> {references risk(id)}
+    risk_control_id         : UUID <<PK, FK>> {references risk_control(id)}
+}
+
+RSK ||--o{ RRCL
+RSC ||--o{ RRCL
+
 @enduml
