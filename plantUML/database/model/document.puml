@@ -3,11 +3,11 @@
 left to right direction
 
 entity "document" as DOC {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
     level                 : integer   {not null}
     name                  : string    {not null}
+    created_time          : datetime  {not null, default: now() }
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
     --
     id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
     uploadfile_entity_id  : UUID      <<FK>>  {nullable, references uploadfile_entity(id)}
@@ -16,32 +16,46 @@ entity "document" as DOC {
 }
 DOC ||--o{ DOC : children
 
-' note on link
-'     FK creator_id → user.id
-'     FK uploadfile_entity_id → uploadfile_entity.id
-' end note
-
 entity "uploadfile_entity" as UPE {
     name : string {not null}
     path : string {not null}
+    content_type: enum {not null}
     --
     id   : UUID   <<PK>> {not null, default: uuid_generate_v4()}
 }
 UPE ||--o{ DOC : documents
 
 entity "user" as USR {
-    version_group_id      : string    {not null}
-    is_current            : bool      {not null, default: false}
-    created_time          : datetime  {not null, default: now() }
-    account               : string    {not null}
-    username              : string    {not null}
-    session_start_time    : datetime  {nullable}
-    session_end_time      : datetime  {nullable}
-    is_active             : bool      {not null, default: true}
+    account                   : string     {not null}
+    username                  : string     {not null}
+    session_start_time        : datetime   {nullable}
+    session_end_time          : datetime   {nullable}
+    is_active                 : bool       {not null, default: true}
+    is_temp                   : bool       {not null, default: false}
+    created_time              : datetime   {not null, default: now() }
+    version_group_id          : string     {not null}
+    is_current                : bool       {not null, default: false}
     --
-    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
-    parent_id             : UUID      <<FK>>  {references user(id)}
+    id                        : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    role_id                   : UUID       <<FK>> {not null, references role(id)}
+    parent_id                 : UUID       <<FK>> {references user(id)}
 }
 USR ||--o{ USR : children
 USR ||--o{ DOC : creator
+
+entity "document_archive" as DARC {
+    content               : text      {not null}
+    filename              : string(512) {not null}
+    level                 : integer   {not null}
+    category              : enum related_object_category {not null, default: 'document'} <index>
+    created_time          : timestamptz {not null, default: now()} <index>
+    embed                 : vector(1024) {not null}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    doc_id                : UUID      <<FK>>  {not null, references document(id)} <index>
+    user_id               : UUID      <<FK>>  {not null, references user(id)} <index>
+}
+
+DOC  ||--o{ DARC : document_archives
+USR  ||--o{ DARC : document_archives
 @enduml

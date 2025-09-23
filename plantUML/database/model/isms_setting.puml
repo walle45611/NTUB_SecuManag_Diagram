@@ -1,0 +1,61 @@
+@startuml
+skinparam linetype ortho
+left to right direction
+
+
+entity "isms_setting" as ISMSS {
+    name                            : string     {not null}
+    description                     : text       {not null}
+    calculation_formula             : string     {nullable}
+    calculation_formula_description : text       {nullable}
+    custom_fields                   : jsonb      {nullable}
+    risk_notification_users         : jsonb      {nullable}
+    threshold_min                   : float      {not null}
+    threshold_max                   : float      {not null}
+    created_time                    : datetime   {not null, default: now()}
+    version_group_id                : string     {not null}
+    is_current                      : bool       {not null, default: false}
+    --
+    id                              : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    parent_id                       : UUID       <<FK>> {references isms_setting(id)}
+}
+ISMSS ||--o{ ISMSS : children
+
+entity "formula_variable" as FOV {
+    name               : string    {not null}
+    description        : text      {not null}
+    value              : float     {not null}
+    --
+    id                 : UUID      <<PK>> {not null, default: uuid_generate_v4()}
+    isms_setting_id    : UUID      <<FK>> {not null, references isms_setting(id)}
+}
+ISMSS ||--o{ FOV : formula_variable
+
+entity "high_risk_setting" as HRS {
+    threshold_value    : float     {not null}
+    restriction_day    : integer   {not null}
+    --
+    id                 : UUID      <<PK>> {not null, default: uuid_generate_v4()}
+    isms_setting_id    : UUID      <<FK>> {not null, references isms_setting(id)} {unique}
+}
+ISMSS ||--|| HRS : high_risk_setting
+
+entity "medium_risk_setting" as MRS {
+    threshold_value    : float     {not null}
+    restriction_day    : integer   {not null}
+    --
+    id                 : UUID      <<PK>> {not null, default: uuid_generate_v4()}
+    isms_setting_id    : UUID      <<FK>> {not null, references isms_setting(id)} {unique}
+}
+ISMSS ||--|| MRS : medium_risk_setting
+
+entity "low_risk_setting" as LRS {
+    threshold_value    : float     {not null}
+    restriction_day    : integer   {not null}
+    --
+    id                 : UUID      <<PK>> {not null, default: uuid_generate_v4()}
+    isms_setting_id    : UUID      <<FK>> {not null, references isms_setting(id)} {unique}
+}
+ISMSS ||--|| LRS : low_risk_setting
+
+@enduml

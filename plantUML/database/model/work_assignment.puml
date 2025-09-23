@@ -1,0 +1,42 @@
+@startuml
+' skinparam linetype ortho
+
+entity "work_assignment" as WASN {
+    name                      : string     {not null}
+    description               : text       {nullable}
+    related_object_id         : UUID       {not null} <index>
+    related_object_category   : enum related_object_category {not null, default: 'risk'} <index>
+    final_status              : enum work_assignment_status  {not null, default: 'pending'} <index>
+    processors                : jsonb      {not null}
+    extra_data                : jsonb      {nullable}
+    created_time              : timestamptz {not null, default: now()}
+    --
+    id                        : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    creator_id                : UUID       <<FK>> {references user(id)}
+}
+
+entity "user" as USR {
+    account                   : string     {not null}
+    username                  : string     {not null}
+    session_start_time        : datetime   {nullable}
+    session_end_time          : datetime   {nullable}
+    is_active                 : bool       {not null, default: true}
+    is_temp                   : bool       {not null, default: false}
+    created_time              : datetime   {not null, default: now() }
+    version_group_id          : string     {not null}
+    is_current                : bool       {not null, default: false}
+    --
+    id                        : UUID       <<PK>> {not null, default: uuid_generate_v4()}
+    role_id                   : UUID       <<FK>> {not null, references role(id)}
+    parent_id                 : UUID       <<FK>> {references user(id)}
+}
+USR ||--o{ USR : children
+USR ||--o{ WASN : work_assignments
+
+note right of WASN
+  透過 related_object_category
+  和 related_object_id 實現
+  多態關聯設計
+end note
+
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+skinparam linetype ortho
+' left to right direction
+
+entity "audit_title" as AUT {
+    name          : string(255)  {not null}
+    description   : text         {nullable}
+    created_time  : datetime     {not null, default: now()}
+    version_group_id : string    {not null}
+    is_current    : bool         {not null, default: false}
+    --
+    id            : UUID         <<PK>> {not null, default: uuid_generate_v4()}
+}
+AUT ||--o{ AUT : children
+
+entity "audit_item" as AUIT {
+    name            : string(255) {not null}
+    description     : text        {nullable}
+    self_check      : bool        {not null, default: false}
+    committee_check : bool        {not null, default: false}
+    created_time    : timestamptz {not null}
+    --
+    id              : UUID        <<PK>> {not null, default: uuid_generate_v4()}
+    audit_title_id  : UUID        <<FK>> {not null, references audit_title(id), on delete: CASCADE}
+}
+AUT ||--o{ AUIT : audit_items
+
+entity "audit_evidence" as AUEV {
+    created_time          : timestamptz {not null}
+    --
+    id                    : UUID        <<PK>> {not null, default: uuid_generate_v4()}
+    audit_item_id         : UUID        <<FK>> {not null, references audit_item(id), on delete: CASCADE}
+    uploadfile_entity_id  : UUID        <<FK>> {not null, references uploadfile_entity(id)} {unique}
+}
+AUIT ||--o{ AUEV : audit_evidences
+
+entity "uploadfile_entity" as UPE {
+    name          : string       {not null}
+    path          : string       {not null}
+    content_type  : enum evidence_type {not null, default: 'file'} <index>
+    --
+    id            : UUID         <<PK>> {not null, default: uuid_generate_v4()}
+}
+
+AUEV ||--|| UPE : file
+
+@enduml

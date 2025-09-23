@@ -8,17 +8,30 @@ class Announcement {
   + title : String
   + description : String
   + is_show : Boolean
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + prepare_fk_updates(new_id : UUID) : Dict
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class AppSetting {
   + id : UUID
+  + email_signature : String
+  + maintain_email : String
+  + domain : String
+  + minio_bucket_name : String
+  + google_client_secret : String
+  + google_client_id : String
+  + microsoft_tenant_id : String
+  + microsoft_client_secret : String
+  + microsoft_client_id : String
+  + smtp_sender_email : String
+  + smtp_sender_password : String
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -36,46 +49,43 @@ class Approval {
   + created_time : DateTime
   - _parse_datetime(dt_value) : DateTime
   - _calculate_time_diff(deadline) : timedelta
-  - _check_previous_signers(index)
+  - _check_previous_signers(index : int)
   - _get_first_user_id() : UUID
-  + init_on_load()
-  + ensure_can_view(entity_id, repo)
-  + get_final_status() : ApprovalStatus
-  + ensure_pending()
+  + ensure_pending() : void
   + get_signer_index(user_id : UUID) : int
-  + get_pending_signers(user_id : UUID)
-  + adjust_signer_deadlines(index)
-  + approve_signer(user_id : UUID)
-  + reject_signer(user_id : UUID)
+  + get_pending_signers() : List<SignerMessage>
+  + adjust_signer_deadlines(index : int) : void
+  + approve_signer(user_id : UUID) : ApprovalStatus
   + apply_signer_action(user_id : UUID, is_reject : bool) : ApprovalStatus
-  + submit()
-  + approve()
-  + reject()
+  + validate_signers_is_empty() : void
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class AssetCategory {
   + id : UUID
   + name : String
   + description : String
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_assets : boolean) : void
 }
 
-class AssetSetting {
+class IsmsSetting {
   + id : UUID
   + name : String
+
   + description : String
-  + high_risk : float
-  + medium_risk : float
-  + low_risk : float
   + calculation_formula : String
   + calculation_formula_description : String
   + custom_fields : JSONB
+  + risk_notification_users : JSONB
+  + threshold_min : float
+  + threshold_max : float
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
 }
 
@@ -86,10 +96,39 @@ class Asset {
   + value : float
   + custom_fields : JSON
   + asset_category_id : UUID
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_assets : boolean) : void
+}
+
+class AuditTitle {
+  + id : UUID
+  + name : String
+  + description : String
+  + created_time : Datetime
+  + version_group_id : varchar
+  + is_current : boolean
+  + parent_id : UUID
+  + validate_deletion(has_related_data : boolean) : void
+}
+
+class AuditItem {
+  + id : UUID
+  + name : String
+  + description : String
+  + self_check : Boolean
+  + committee_check : Boolean
+  + created_time : Datetime
+}
+
+class AuditEvidence {
+  + id : UUID
+  + created_time : Datetime
+  + audit_title_id : UUID
+  + uploadfile_entity_id : UUID
+  + __post_init__() : void
 }
 
 class Document {
@@ -98,10 +137,25 @@ class Document {
   + name : String
   + uploadfile_entity_id : UUID
   + creator_id : UUID
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + should_compress_file(file_size : int, filename : String) : boolean
+  + determine_compression_format(file_size : int) : CompressionFormat
+  + determine_compression_level(file_size : int) : CompressionLevel
+  + get_compression_info(original_size : int, compressed_size : int) : dict
+}
+
+class DocumentArchive {
+  + id : UUID
+  + content : String
+  + filename : String
+  + level : Integer
+  + category : RelatedObjectCategory
+  + created_time : Datetime
+  + doc_id : UUID
+  + user_id : UUID
 }
 
 class FormulaVariable {
@@ -109,7 +163,28 @@ class FormulaVariable {
   + name : String
   + description : String
   + value : float
-  + asset_setting_id : UUID
+  + isms_setting_id : UUID
+}
+
+class HighRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day : Integer
+}
+
+class MediumRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day : Integer
+}
+
+class LowRiskSetting {
+  + id : UUID
+  + isms_setting_id : UUID
+  + threshold_value : float
+  + restriction_day : Integer
 }
 
 class Permission {
@@ -122,28 +197,35 @@ class RiskControl {
   + id : UUID
   + name : String
   + description : String
-  + risk_id : UUID
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_related_data : boolean) : void
+}
+
+class RiskRiskControlLink {
+  + risk_id : UUID
+  + risk_control_id : UUID
 }
 
 class Risk {
   + id : UUID
-  + value : float
+  + final_state : RiskProcessingState
+  + treatment_strategy : RiskTreatmentStrategy
+  + original_value : float
+  + final_value : int
+  + reduce_value : int
+  + is_trackable : boolean
+  + tracking_interval_days : int
   + asset_id : UUID
   + threat_id : UUID
   + vulnerability_id : UUID
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
-  + recalculate_by_asset(asset_id, risk_repository, calc_risk_service)
-  + recalculate_by_threat(threat_id, risk_repository, calc_risk_service)
-  + recalculate_by_vulnerability(vulnerability_id, risk_repository, calc_risk_service)
-  - _recalculate_single_risk(risk, risk_repository, calc_risk_service)
-  + recalculate(calc_risk_service, risk_repository)
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class RolePermissionLink {
@@ -154,10 +236,13 @@ class RolePermissionLink {
 class Role {
   + id : UUID
   + name : String
+  + description : String
+  + is_temp : boolean
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class Threat {
@@ -166,27 +251,20 @@ class Threat {
   + description : String
   + value : float
   + type : CiaType
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_fk_on_delete(has_risks : boolean) : void
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class UploadfileEntity {
   + id : UUID
   + name : String
   + path : String
+  + content_type : EvidenceType
   + ensure_can_view(entity_id, repo)
-}
-
-class UserPermissionLink {
-  + user_id : UUID
-  + permission_id : Integer
-}
-
-class UserRoleLink {
-  + user_id : UUID
-  + role_id : UUID
 }
 
 class User {
@@ -196,10 +274,12 @@ class User {
   + session_start_time : DateTime
   + session_end_time : DateTime
   + is_active : Boolean
+  + is_temp : boolean
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_related_data : boolean) : void
 }
 
 class Vulnerability {
@@ -208,76 +288,94 @@ class Vulnerability {
   + description : String
   + value : float
   + type : CiaType
+  + created_time : Datetime
   + version_group_id : varchar
   + is_current : boolean
-  + created_time : Datetime
   + parent_id : UUID
+  + validate_deletion(has_related_data : boolean) : void
+}
+
+class WorkAssignment {
+  + id : UUID
+  + name : String
+  + description : String
+  + related_object_id : UUID
+  + related_object_category : RelatedObjectCategory
+  + final_status : WorkAssignmentStatus
+  + processors : JSONB
+  + extra_data : JSONB
+  + created_time : Datetime
+  + version_group_id : varchar
+  + is_current : boolean
 }
 
 ' Relationships '
-Announcement --> "0..*" Announcement : children
-Announcement o-- "0..*" Approval : approvals
+Announcement --> "0..1" Announcement : children
+Announcement --> "1..1" Approval : approvals
 
-AppSetting --> "0..*" AppSetting : children
-AppSetting o-- "0..*" Approval : approvals
+AppSetting --> "0..1" AppSetting : children
+AppSetting --> "1..1" Approval : approvals
 
-AssetCategory --> "0..*" AssetCategory : children
-AssetCategory o-- "0..*" Asset : assets
-AssetCategory o-- "0..*" Approval : approvals
+AssetCategory --> "0..1" AssetCategory : children
+AssetCategory --> "1..1" Approval : approvals
 
-AssetSetting --> "0..*" AssetSetting : children
-AssetSetting o-- "0..*" FormulaVariable : formula_variable
-AssetSetting o-- "0..*" Approval : approvals
+IsmsSetting --> "0..1" IsmsSetting : children
+IsmsSetting --> "1..1" Approval : approvals
 
-Asset --> "0..*" Asset : children
-Asset o-- "0..*" Risk : risks
-Asset --> AssetCategory : asset_category
-Asset o-- "0..*" Approval : approvals
+FormulaVariable --> "*..1" IsmsSetting : isms_setting
+HighRiskSetting --> "1..1" IsmsSetting : isms_setting
+MediumRiskSetting --> "1..1" IsmsSetting : isms_setting
+LowRiskSetting --> "1..1" IsmsSetting : isms_setting
 
-Document --> "0..*" Document : children
-Document --> UploadfileEntity : uploadfile_entity
-Document --> User : creator
-Document o-- "0..*" Approval : approvals
+Asset --> "0..1" Asset : children
+Asset o-- "*..1" AssetCategory : asset_category
+Asset --> "1..1" Approval : approvals
 
-UploadfileEntity o-- "0..*" Document : documents
-UploadfileEntity o-- "0..*" Approval : approvals
+AuditTitle --> "0..1" AuditTitle : children
+AuditTitle --> "1..1" Approval : approvals
 
-Approval --> UploadfileEntity : uploadfile_entity
+AuditItem --> "*..1" AuditTitle : audit_title
 
-FormulaVariable --> AssetSetting : asset_setting
-FormulaVariable o-- "0..*" Approval : approvals
+AuditEvidence --> "*..1" AuditItem : audit_item
+AuditEvidence --> "1..1" UploadfileEntity : uploadfile_entity
 
-Risk --> "0..*" Risk : children
-Risk --> Asset : asset
-Risk --> Threat : threat
-Risk --> Vulnerability : vulnerability
-Risk o-- "0..*" RiskControl : risk_controls
-Risk o-- "0..*" Approval : approvals
+Document --> "0..1" Document : children
+Document --> "1..1" User : creator
+Document --> "1..1" UploadfileEntity : uploadfile_entity
+Document --> "1..1" Approval : approvals
 
-RiskControl --> Risk : risk
-RiskControl --> "0..*" RiskControl : children
-RiskControl o-- "0..*" Approval : approvals
+DocumentArchive --> "*..1" Document : doc
+DocumentArchive --> "*..1" User : user
 
-RolePermissionLink --> Role : role
-RolePermissionLink --> Permission : permission
+Approval --> "1..1" UploadfileEntity : uploadfile_entity
 
-UserPermissionLink --> User : user
-UserPermissionLink --> Permission : permission
+Risk --> "0..1" Risk : children
+Risk --> "1..1" Asset : asset
+Risk --> "1..1" Threat : threat
+Risk --> "1..1" Vulnerability : vulnerability
+Risk --> "1..1" Approval : approvals
 
-UserRoleLink --> User : user
-UserRoleLink --> Role : role
+RiskControl --> "0..1" RiskControl : children
+RiskControl --> "1..1" Approval : approvals
 
-Role --> "0..*" Role : children
-Role o-- "0..*" Approval : approvals
+RiskRiskControlLink --> "*..1" Risk : risk
+RiskRiskControlLink --> "*..1" RiskControl : risk_controls
 
-User --> "0..*" User : children
-User o-- "0..*" Approval : approvals
+RolePermissionLink --> "*..1" Role : role
+RolePermissionLink --> "*..1" Permission : permission
 
-Threat --> "0..*" Threat : children
-Threat o-- "0..*" Risk : risks
-Threat o-- "0..*" Approval : approvals
+Role --> "0..1" Role : children
+Role --> "1..1" Approval : approvals
 
-Vulnerability --> "0..*" Vulnerability : children
-Vulnerability o-- "0..*" Risk : risks
-Vulnerability o-- "0..*" Approval : approvals
+User --> "0..1" User : children
+User --> "1..1" Role : role
+User --> "1..1" Approval : approvals
+
+Threat --> "0..1" Threat : children
+Threat --> "1..1" Approval : approvals
+
+Vulnerability --> "0..1" Vulnerability : children
+Vulnerability --> "1..1" Approval : approvals
+
+WorkAssignment --> "1..1" User : creator
 @enduml
