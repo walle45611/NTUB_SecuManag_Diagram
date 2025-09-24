@@ -1,0 +1,98 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' ====== ISMS / 風險領域 ======
+package "ISMS / Risk Domain" {
+  class AssetCategory {
+    +name
+    +description
+  }
+  class Asset {
+    +name
+    +description
+    +value
+    +custom_fields
+  }
+  class Threat {
+    +name
+    +description
+    +value
+    +type
+  }
+  class Vulnerability {
+    +name
+    +description
+    +value
+    +type
+  }
+
+  class Risk {
+    +original_value
+    +final_value
+    +reduce_value
+    +treatment_strategy
+    +is_trackable
+    +tracking_interval_days
+  }
+  class RiskControl {
+    +name
+    +description
+  }
+
+  class IsmsSetting {
+    +name
+    +description
+    +calculation_formula
+    +calculation_formula_description
+    +custom_fields
+    +risk_notification_users
+  }
+  class FormulaVariable {
+    +name
+    +description
+    +value
+  }
+  class HighRiskSetting {
+    +threshold_value
+    +restriction_day
+  }
+  class MediumRiskSetting {
+    +threshold_value
+    +restriction_day
+  }
+  class LowRiskSetting {
+    +threshold_value
+    +restriction_day
+  }
+
+  ' Asset 與 AssetCategory 關聯
+  Asset -- AssetCategory : asset_category
+
+  ' 風險關聯
+  Risk -- Asset : asset
+  Risk -- Threat : threat
+  Risk -- Vulnerability : vulnerability
+  Risk -- RiskControl : risk_controls
+
+  ' IsmsSetting 與變數/門檻關聯
+  IsmsSetting -- FormulaVariable : formula_variables
+  IsmsSetting -- HighRiskSetting : high_risk_setting
+  IsmsSetting -- MediumRiskSetting : medium_risk_setting
+  IsmsSetting -- LowRiskSetting : low_risk_setting
+}
+
+' ====== 虛擬概念收斂 ======
+class ApprovableTarget <<concept>> {
+}
+
+' 真實領域物件都指向 ApprovableTarget（ISMS/Risk）
+AssetCategory -- ApprovableTarget
+Asset -- ApprovableTarget
+Threat -- ApprovableTarget
+Vulnerability -- ApprovableTarget
+Risk -- ApprovableTarget
+RiskControl -- ApprovableTarget
+IsmsSetting -- ApprovableTarget
+
+@enduml

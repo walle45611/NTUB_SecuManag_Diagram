@@ -1,0 +1,118 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' ====== 人員與權限 ======
+package "People & Auth" {
+  class User {
+    +account
+    +username
+    +is_active
+    +is_temp
+  }
+  class Role {
+    +name
+    +description
+    +is_temp
+  }
+  class Permission {
+    +name
+    +path
+  }
+
+  ' User 與 Role 關聯
+  User -- Role : role
+  ' Role 與 Permission 關聯
+  Role -- Permission : permissions
+}
+
+' ====== 工作與審批 ======
+package "Workflow" {
+  class Approval {
+    +status
+    +signers
+    +comments
+  }
+  class WorkAssignment {
+    +name
+    +processors
+    +status
+    +extra_data
+  }
+
+  ' 建立者
+  WorkAssignment -- User : creator
+}
+
+' ====== 文件/稽核 ======
+package "Documents & Audit" {
+  class Document {
+    +name
+    +level
+  }
+  class DocumentArchive {
+    +content
+    +filename
+    +level
+    +category
+  }
+  class UploadfileEntity {
+    +name
+    +content_type
+    +path
+  }
+
+  class AuditTitle {
+    +name
+  }
+  class AuditItem {
+    +name
+    +self_check
+    +committee_check
+  }
+  class AuditEvidence
+
+  ' Document 與 User 關聯
+  Document -- User : creator
+  ' Document 與 UploadfileEntity 關聯
+  Document -- UploadfileEntity : uploadfile_entity
+  ' DocumentArchive 與 Document/User 關聯
+  DocumentArchive -- Document : doc
+  DocumentArchive -- User : user
+  ' AuditEvidence 與 UploadfileEntity 關聯
+  AuditEvidence -- UploadfileEntity : uploadfile_entity
+  ' 稽核層級
+  AuditTitle -- AuditItem : audit_items
+  AuditEvidence -- AuditItem : audit_item
+}
+
+' ====== 公告/系統設定 ======
+package "System" {
+  class Announcement {
+    +title
+    +date
+    +is_show
+    +description
+  }
+  class AppSetting {
+    +key_settings
+  }
+}
+
+' ====== 虛擬概念收斂 ======
+class ApprovableTarget <<concept>> {
+}
+
+' 把箭頭收斂到 ApprovableTarget（Core）
+Approval ..> ApprovableTarget : approvals
+WorkAssignment ..> ApprovableTarget : related_to
+
+' 真實領域物件指向 ApprovableTarget（Core）
+Announcement -- ApprovableTarget
+Document -- ApprovableTarget
+AuditTitle -- ApprovableTarget
+Role -- ApprovableTarget
+User -- ApprovableTarget
+AppSetting -- ApprovableTarget
+
+@enduml

@@ -1,0 +1,185 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' ====== People & Auth ======
+package "People & Auth" {
+  class User {
+    + id : UUID
+    + account : String
+    + username : String
+    + session_start_time : DateTime
+    + session_end_time : DateTime
+    + is_active : Boolean
+    + is_temp : boolean
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+    + parent_id : UUID
+    + validate_deletion(has_related_data : boolean) : void
+  }
+
+  class Role {
+    + id : UUID
+    + name : String
+    + description : String
+    + is_temp : boolean
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+    + parent_id : UUID
+    + validate_deletion(has_related_data : boolean) : void
+  }
+
+  class Permission {
+    + id : Integer
+    + name : String
+    + path : String
+  }
+
+  class RolePermissionLink {
+    + role_id : UUID
+    + permission_id : Integer
+  }
+}
+
+' ====== Workflow ======
+package "Workflow" {
+  class Approval {
+    + id : UUID
+    + name : String
+    + description : String
+    + related_object_id : UUID
+    + related_object_category : RelatedObjectCategory
+    + action_type : ActionType
+    + final_status : ApprovalStatus
+    + signers : JSONB
+    + delay_count : Integer
+    + uploadfile_entity_id : UUID
+    + created_time : DateTime
+    - _parse_datetime(dt_value) : DateTime
+    - _calculate_time_diff(deadline) : timedelta
+    - _check_previous_signers(index : int)
+    - _get_first_user_id() : UUID
+    + ensure_pending() : void
+    + get_signer_index(user_id : UUID) : int
+    + get_pending_signers() : List<SignerMessage>
+    + adjust_signer_deadlines(index : int) : void
+    + approve_signer(user_id : UUID) : ApprovalStatus
+    + apply_signer_action(user_id : UUID, is_reject : bool) : ApprovalStatus
+    + validate_signers_is_empty() : void
+    + validate_deletion(has_related_data : boolean) : void
+  }
+
+  class WorkAssignment {
+    + id : UUID
+    + name : String
+    + description : String
+    + related_object_id : UUID
+    + related_object_category : RelatedObjectCategory
+    + final_status : WorkAssignmentStatus
+    + processors : JSONB
+    + extra_data : JSONB
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+  }
+}
+
+' ====== Documents & Audit ======
+package "Documents & Audit" {
+  class Document {
+    + id : UUID
+    + level : Integer
+    + name : String
+    + uploadfile_entity_id : UUID
+    + creator_id : UUID
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+    + parent_id : UUID
+    + should_compress_file(file_size : int, filename : String) : boolean
+    + determine_compression_format(file_size : int) : CompressionFormat
+    + determine_compression_level(file_size : int) : CompressionLevel
+    + get_compression_info(original_size : int, compressed_size : int) : dict
+  }
+
+  class DocumentArchive {
+    + id : UUID
+    + content : String
+    + filename : String
+    + level : Integer
+    + category : RelatedObjectCategory
+    + created_time : Datetime
+    + doc_id : UUID
+    + user_id : UUID
+  }
+
+  class UploadfileEntity {
+    + id : UUID
+    + name : String
+    + path : String
+    + content_type : EvidenceType
+    + ensure_can_view(entity_id, repo)
+  }
+
+  class AuditTitle {
+    + id : UUID
+    + name : String
+    + description : String
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+    + parent_id : UUID
+    + validate_deletion(has_related_data : boolean) : void
+  }
+
+  class AuditItem {
+    + id : UUID
+    + name : String
+    + description : String
+    + self_check : Boolean
+    + committee_check : Boolean
+    + created_time : Datetime
+  }
+
+  class AuditEvidence {
+    + id : UUID
+    + created_time : Datetime
+    + audit_title_id : UUID
+    + uploadfile_entity_id : UUID
+    + __post_init__() : void
+  }
+}
+
+' ====== Relationships ======
+AuditTitle --> "0..1" AuditTitle : children
+AuditTitle --> "1..1" Approval : approvals
+
+AuditItem --> "*..1" AuditTitle : audit_title
+
+AuditEvidence --> "*..1" AuditItem : audit_item
+AuditEvidence --> "1..1" UploadfileEntity : uploadfile_entity
+
+Document --> "0..1" Document : children
+Document --> "1..1" User : creator
+Document --> "1..1" UploadfileEntity : uploadfile_entity
+Document --> "1..1" Approval : approvals
+
+DocumentArchive --> "*..1" Document : doc
+DocumentArchive --> "*..1" User : user
+
+Approval --> "1..1" UploadfileEntity : uploadfile_entity
+
+RolePermissionLink --> "*..1" Role : role
+RolePermissionLink --> "*..1" Permission : permission
+
+Role --> "0..1" Role : children
+Role --> "1..1" Approval : approvals
+
+User --> "0..1" User : children
+User --> "1..1" Role : role
+User --> "1..1" Approval : approvals
+
+WorkAssignment --> "1..1" User : creator
+@enduml
