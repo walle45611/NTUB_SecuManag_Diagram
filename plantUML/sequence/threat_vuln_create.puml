@@ -11,6 +11,5 @@ Backend-->>Frontend: 回傳分類列表
 User->>Frontend: 選擇類型並點擊「新增弱點 / 威脅」
 Frontend->>Backend: POST /api/isms/threat/ or /api/isms/vulnerability
 Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
-Backend-->>Frontend: 回傳暫存成功訊息
 Frontend->>Backend: POST /api/system/approval/ （建立新增弱點 / 威脅核准請求）
 @enduml

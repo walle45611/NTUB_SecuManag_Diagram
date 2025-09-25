@@ -17,6 +17,5 @@ Backend -->> Frontend: 回傳弱點列表
 User ->> Frontend: 選擇資產並點「新增風險」
 Frontend ->> Backend: POST /api/isms/risk/
 Backend ->> Backend: 暫存至 Domain Event (不直接寫入資料庫)
-Backend -->> Frontend: 回傳暫存成功訊息
 Frontend ->> Backend: POST /api/system/approval/  （建立風險核准請求）
 @enduml

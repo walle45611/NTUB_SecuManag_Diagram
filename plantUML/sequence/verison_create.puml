@@ -8,6 +8,5 @@ participant Approval as "核准模組"
 User->>Frontend: 修改物件
 Frontend->>Backend: POST /api/{module}/{resource_plural}/update-{resource_plural}/
 Backend->>Backend: 暫存版本更新至 Domain Event (不直接寫入資料庫)
-Backend-->>Frontend: 回傳暫存成功訊息
 Frontend ->> Backend: POST /api/system/approval/ （建立版本更新核准請求）
 @enduml
