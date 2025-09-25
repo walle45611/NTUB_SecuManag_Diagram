@@ -1,13 +1,27 @@
 @startuml
-actor ReviewerA as "核准者A"
-participant Frontend
-participant Backend
-participant Database
-actor User as "發起者"
+actor Reviewer as "簽核者"
+actor User as "申請者"
 
-ReviewerA ->> Frontend: 點選「拒絕」
+participant Frontend as "前端"
+participant Backend as "後端"
+participant Database as "資料庫"
+participant RabbitMQ as "訊息佇列"
+participant NotificationService as "通知服務"
+
+== 拒絕操作流程 ==
+Reviewer ->> Frontend: 點選「拒絕」
 Frontend ->> Backend: POST /api/system/approval/{approval_id}/user/{user_id}/rejected
-Backend ->> Database: UPDATE approval SET status='rejected', signer='[{"id": "A", "name": "ReviewerA"},'
-Backend ->> Database: UPDATE 相關資料 SET is_current='false'
-Backend ->> User: 發送退回通知
+
+== 後端處理 ==
+Backend ->> Backend: 驗證簽核人權限
+Backend ->> Backend: 更新簽核狀態
+Backend ->> Database: 更新簽核資料
+Backend ->> Backend: 處理副作用
+Backend ->> RabbitMQ: 發送拒絕訊息
+Backend -->> Frontend: 回傳成功訊息
+
+== 通知流程 ==
+RabbitMQ ->> NotificationService: 處理拒絕通知
+NotificationService ->> Database: 更新相關資料狀態
+NotificationService ->> User: 發送拒絕通知郵件
 @enduml
