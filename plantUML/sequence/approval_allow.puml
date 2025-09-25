@@ -3,11 +3,11 @@
 title 核准允許流程 (Approval Allow Process)
 
 actor ReviewerA as "核准者A"
-actor ReviewerB as "核准者B"
 participant Frontend as "前端介面"
 participant Backend as "後端服務"
 participant Database as "資料庫"
 participant NotificationService as "通知服務"
+actor ReviewerB as "核准者B"
 
 == 核准操作階段 ==
 ReviewerA ->> Frontend: 點選「通過」
