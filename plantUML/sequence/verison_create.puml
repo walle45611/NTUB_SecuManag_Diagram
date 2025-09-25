@@ -9,4 +9,7 @@ User->>Frontend: 修改物件
 Frontend->>Backend: POST /api/{module}/{resource_plural}/update-{resource_plural}/
 Backend->>Backend: 暫存版本更新至 Domain Event (不直接寫入資料庫)
 Frontend ->> Backend: POST /api/system/approval/ （建立版本更新核准請求）
+Approval -->> Backend: approval_completed  （收到核准結果）
+Backend->>Database: 更新物件資料 (添加 parent_id)
+Backend->>Frontend: 回傳更新結果
 @enduml

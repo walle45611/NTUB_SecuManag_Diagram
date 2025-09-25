@@ -7,7 +7,7 @@ participant Database
 participant Service as "風險計算服務"
 participant Approval as "核准模組"
 
-User ->> Frontend: 點擊「編輯資產設定」
+User ->> Frontend: 點擊「編輯 ISMS 設定」
 Frontend ->> Backend: GET /api/system/asset-setting/
 Backend ->> Database: 讀取 isms_setting、變數與自訂欄位設定
 Backend -->> Frontend: 回傳設定資料

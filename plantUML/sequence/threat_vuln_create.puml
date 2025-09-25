@@ -12,4 +12,8 @@ User->>Frontend: 選擇類型並點擊「新增弱點 / 威脅」
 Frontend->>Backend: POST /api/isms/threat/ or /api/isms/vulnerability
 Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
 Frontend->>Backend: POST /api/system/approval/ （建立新增弱點 / 威脅核准請求）
+Approval-->>Backend: approval_completed  （收到核准結果）
+Backend->> AI_Module: 評估弱點 / 威脅數值
+AI_Module->>Database: 新增弱點 / 威脅資料
+Backend->>Frontend: 回傳並顯示至畫面
 @enduml

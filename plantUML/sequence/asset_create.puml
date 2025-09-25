@@ -21,4 +21,7 @@ User->>Frontend: 選擇最終評估值並提交資產
 Frontend->>Backend: POST /api/isms/asset/
 Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
 Frontend->>Backend: POST /api/system/approval/ (建立新增資產核准請求)
+Approval-->>Backend: approval_completed (收到核准結果)
+Backend->>Database: 新增資產資料(包含最終選擇的評估值)
+Backend->>Frontend: 回傳並顯示至畫面
 @enduml
