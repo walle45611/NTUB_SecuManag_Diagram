@@ -19,8 +19,8 @@ Frontend-->>User: 顯示評估分數與詳細分析
 note right of User: 使用者可選擇：\n1. 採用AI建議值\n2. 自行設定評估值
 User->>Frontend: 選擇最終評估值並提交資產
 Frontend->>Backend: POST /api/isms/asset/
-Frontend->>Approval: POST /api/system/approval/ (建立新增資產核准請求)
-Approval-->>Backend: approval_completed (收到核准結果)
-Backend->>Database: 新增資產資料(包含最終選擇的評估值)
-Backend->>Frontend: 回傳並顯示至畫面
+Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
+Backend-->>Frontend: 回傳暫存成功訊息
+Frontend->>Backend: POST /api/system/approval/ (建立新增資產核准請求)
+note right of Backend: 資產資料暫存在 Domain Event 中\n等待核准完成後再進行實際新增
 @enduml

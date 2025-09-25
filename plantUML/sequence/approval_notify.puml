@@ -10,7 +10,8 @@ actor ReviewerB as "上級核准者"
 
 User ->> Frontend: 新增核准請求
 Frontend ->> Backend: POST /api/system/approval/
-Backend ->> Database: INSERT INTO approval_request ...
+Backend ->> Backend: 暫存核准請求至 Domain Event (關聯業務物件暫存資料)
+Backend ->> Database: INSERT INTO approval_request ... (僅核准流程記錄)
 Backend ->> RabbitMQ: 推送至 Approve Queue (TTL & DLX 設定)
 Backend ->> ReviewerA: 發送核准通知
 

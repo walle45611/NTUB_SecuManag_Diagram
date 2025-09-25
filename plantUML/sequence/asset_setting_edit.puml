@@ -14,11 +14,8 @@ Backend -->> Frontend: 回傳設定資料
 Frontend ->> Frontend: 顯示編輯表單 (名稱、描述、策略值、公式編輯器...)
 User ->> Frontend: 修改並點擊「保存」
 Frontend ->> Backend: POST /api/system/asset-setting/update-asset-setting/
-Frontend ->> Approval: POST /api/system/approval/
-Backend ->> Database: 寫入 isms_setting 資料
-Approval-->>Backend: 核准成功
-Backend ->> Database: 更新 isms_setting 設定資料
-Backend ->> Service: 觸發重新計算風險 (所有資產)
-Service ->> Database: 更新 risk 資料表
-Backend -->> Frontend: 回傳更新結果
+Backend ->> Backend: 暫存設定更新至 Domain Event (不直接寫入資料庫)
+Backend -->> Frontend: 回傳暫存成功訊息
+Frontend ->> Backend: POST /api/system/approval/
+note right of Backend: 資產設定更新暫存在 Domain Event 中\n等待核准完成後透過 Event Sourcing 進行：\n1. 實際更新 isms_setting 設定資料\n2. 觸發重新計算風險 (所有資產)\n3. 更新 risk 資料表
 @enduml
