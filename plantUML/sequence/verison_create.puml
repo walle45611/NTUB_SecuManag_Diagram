@@ -1,15 +1,34 @@
 @startuml
 actor User as "使用者"
 participant Frontend
-participant Backend
-participant Database
-participant Approval as "核准模組"
+participant "Resource API" as ResourceAPI
+participant "PendingOperations\nManager" as POM
+participant "Approval API" as ApprovalAPI
+queue "RabbitMQ" as MQ
+participant "Approval Worker" as Worker
+database Database
 
-User->>Frontend: 修改物件
-Frontend->>Backend: POST /api/{module}/{resource_plural}/update-{resource_plural}/
-Backend->>Backend: 暫存版本更新至 Domain Event (不直接寫入資料庫)
-Frontend ->> Backend: POST /api/system/approval/ （建立版本更新核准請求）
-Approval -->> Backend: approval_completed  （收到核准結果）
-Backend->>Database: 更新物件資料 (添加 parent_id)
-Backend->>Frontend: 回傳更新結果
+== 建立更新草稿 ==
+User -> Frontend: 編輯物件內容
+Frontend -> ResourceAPI: POST /api/{module}/{resource_plural}/update-{resource_plural}/
+ResourceAPI -> POM: publish_update_event(updated draft)
+ResourceAPI --> Frontend: 僅回傳草稿已暫存
+
+== 建立簽核單 ==
+Frontend -> ApprovalAPI: POST /api/system/approval/
+ApprovalAPI -> POM: consume_event_and_get_domain(updated draft)
+ApprovalAPI -> Database: INSERT 新版本 (parent_id = 原始物件)
+ApprovalAPI -> Database: INSERT approval (status = pending)
+ApprovalAPI --> Frontend: 回傳簽核單資訊
+
+== 核准完成 ==
+actor Signer as "簽核者"
+Signer -> Frontend: 送出核准
+Frontend -> ApprovalAPI: POST /api/system/approval/{approval_id}/user/{user_id}/approved
+ApprovalAPI -> MQ: publish approval.completed.approved
+
+MQ -> Worker: deliver approval.completed.approved
+Worker -> Database: CALL system_handle_object_approval_workflow_for_approved(...)
+Worker --> MQ: ACK & 刪除 pending queue
+
 @enduml

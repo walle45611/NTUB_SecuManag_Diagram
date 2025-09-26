@@ -1,0 +1,20 @@
+@startuml
+actor "使用者 (Signer)" as Signer
+participant Frontend
+participant Backend
+queue RabbitMQ
+participant Worker
+database Database
+database "向量索引\n(pgvector)" as VectorStore
+
+Signer -> Frontend: 核准使用者資料
+Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
+Backend -> RabbitMQ: publish approval.completed.approved (user payload)
+Backend --> Frontend: 回傳成功
+
+RabbitMQ -> Worker: deliver message
+Worker -> Database: 更新使用者最終版本 + 四階證明
+Worker -> VectorStore: 重建用戶向量索引
+Worker -> Backend: approved_success_notify(...)
+Worker -> RabbitMQ: 刪除 queue 並 ACK
+@enduml

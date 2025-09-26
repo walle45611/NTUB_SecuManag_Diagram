@@ -1,19 +1,51 @@
 @startuml
 actor User as "一般使用者"
 participant Frontend
-participant Backend
-participant AI_Module as "AI Module"
-participant Database
-participant Approval as "核准模組"
+participant "Threat/Vuln API" as DomainAPI
+participant "AI 評估 (ChatOllama)" as Ollama
+participant "向量索引" as VectorStore
+participant "PendingOperations\nManager" as POM
+participant "Approval API" as ApprovalAPI
+queue "RabbitMQ" as MQ
+participant "Approval Worker" as Worker
+database Database
 
-User->>Frontend: 開啟新增 弱點 / 威脅 頁面
-Backend-->>Frontend: 回傳分類列表
-User->>Frontend: 選擇類型並點擊「新增弱點 / 威脅」
-Frontend->>Backend: POST /api/isms/threat/ or /api/isms/vulnerability
-Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
-Frontend->>Backend: POST /api/system/approval/ （建立新增弱點 / 威脅核准請求）
-Approval-->>Backend: approval_completed  （收到核准結果）
-Backend->> AI_Module: 評估弱點 / 威脅數值
-AI_Module->>Database: 新增弱點 / 威脅資料
-Backend->>Frontend: 回傳並顯示至畫面
+User ->> Frontend: 開啟新增 威脅/弱點 頁面
+Frontend ->> DomainAPI: GET /api/isms/threat/dropdown 或 /vulnerability/dropdown
+DomainAPI -->> Frontend: 回傳類別與下拉選單
+Frontend -->> User: 顯示建立表單
+
+== (可選) AI 評估 ==
+User ->> Frontend: 點擊 AI 評估
+Frontend ->> DomainAPI: POST /api/isms/(threat|vulnerability)/evaluate-(threat|vulnerability)
+DomainAPI ->> VectorStore: 檢索相關文件
+VectorStore -->> DomainAPI: 回傳文件片段
+DomainAPI ->> Ollama: 生成評估分數/原因
+Ollama -->> DomainAPI: 回傳 JSON 結果
+DomainAPI -->> Frontend: 顯示 AI 建議供參考
+
+== 建立簽核草稿 ==
+User ->> Frontend: 送出威脅/弱點資料
+Frontend ->> DomainAPI: POST /api/isms/(threat|vulnerability)/
+DomainAPI ->> POM: publish_create_event(domain 草稿)
+DomainAPI -->> Frontend: 回傳草稿已暫存
+
+Frontend ->> ApprovalAPI: POST /api/system/approval/
+ApprovalAPI ->> POM: consume_event_and_get_domain(domain 草稿)
+ApprovalAPI ->> Database: INSERT 威脅/弱點 草稿 (is_current=false)
+ApprovalAPI ->> Database: INSERT approval (pending)
+ApprovalAPI ->> MQ: 建立 pending_approval_queue_{approval_id}
+ApprovalAPI -->> Frontend: 回傳簽核單資訊
+
+== 核准完成 ==
+actor Approver as "簽核者"
+Approver ->> Frontend: 核准簽核
+Frontend ->> ApprovalAPI: POST /api/system/approval/{id}/user/{user_id}/approved
+ApprovalAPI ->> MQ: publish approval.completed.approved
+
+MQ -> Worker: deliver approval.completed.approved
+Worker -> Database: CALL system_handle_object_approval_workflow_for_approved(...)
+Worker -> MQ: delete pending_approval_queue_{approval_id}
+Worker --> MQ: ACK
+
 @enduml

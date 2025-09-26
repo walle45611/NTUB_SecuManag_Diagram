@@ -1,0 +1,30 @@
+@startuml
+actor User
+participant Frontend
+participant "業務 API" as BusinessAPI
+participant "Domain Drafts" as Drafts
+participant "Approval API" as ApprovalAPI
+queue RabbitMQ as MQ
+participant Worker
+database Database
+
+User -> Frontend: 填寫業務資料與簽核資訊
+Frontend -> BusinessAPI: POST /{context}/{resource}
+BusinessAPI -> Drafts: 暫存 create/update/delete 事件
+BusinessAPI --> Frontend: 回傳草稿已建立
+
+Frontend -> ApprovalAPI: POST /api/system/approval
+ApprovalAPI -> Drafts: 取出草稿事件
+ApprovalAPI -> Database: 儲存草稿 + 建立 approval
+ApprovalAPI -> MQ: 建立 pending_approval_queue_{approval_id}
+ApprovalAPI --> Frontend: 回傳簽核單資訊
+
+actor Signer
+Signer -> Frontend: 核准或拒絕
+Frontend -> ApprovalAPI: POST /api/system/approval/{approval_id}/user/{user_id}/(approved|rejected)
+ApprovalAPI -> MQ: publish approval.completed.(approved|rejected)
+
+MQ -> Worker: deliver message
+Worker -> Database: 執行對應副作用流程
+Worker -> MQ: 清除 queue 並 ACK
+@enduml

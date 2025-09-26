@@ -1,27 +1,52 @@
 @startuml
+skinparam ParticipantPadding 12
+skinparam BoxPadding 6
+
 actor User as "一般使用者"
 participant Frontend
-participant Backend
-participant "AI Module" as AI
-participant Database
-participant Approval as "核准模組"
+participant "Asset API" as AssetAPI
+participant "AI 模組" as AI
+participant "PendingOperations\nManager" as POM
+participant "Approval API" as ApprovalAPI
+queue "RabbitMQ\n(approval queues)" as MQ
+participant "Approval Worker" as Worker
+database Database
+participant "郵件通知服務" as Mail
 
-User->>Frontend: 開啟新增資產頁面
-Frontend->>Backend: GET /api/isms/asset-categories
-Backend-->>Frontend: 回傳分類列表
-User->>Frontend: 填寫基本資產資訊
-User->>Frontend: 點擊「AI 價值評估」按鈕
-Frontend->>Backend: POST /api/isms/asset/evaluate-asset-value
-Backend->>AI: 調用 AI 模型進行價值評估
-AI-->>Backend: 回傳評估結果
-Backend-->>Frontend: 回傳 AI 評估完整結果
-Frontend-->>User: 顯示評估分數與詳細分析
-note right of User: 使用者可選擇：\n1. 採用AI建議值\n2. 自行設定評估值
-User->>Frontend: 選擇最終評估值並提交資產
-Frontend->>Backend: POST /api/isms/asset/
-Backend->>Backend: 暫存至 Domain Event (不直接寫入資料庫)
-Frontend->>Backend: POST /api/system/approval/ (建立新增資產核准請求)
-Approval-->>Backend: approval_completed (收到核准結果)
-Backend->>Database: 新增資產資料(包含最終選擇的評估值)
-Backend->>Frontend: 回傳並顯示至畫面
+== AI 評估 ==
+User -> Frontend: 開啟新增資產流程
+Frontend -> AssetAPI: POST /api/isms/asset/evaluate-asset-value
+AssetAPI -> AI: 依資產描述進行評估
+AI --> AssetAPI: 回傳分數與分析
+AssetAPI --> Frontend: 回傳 AI 評估結果
+Frontend --> User: 顯示評估建議供調整
+
+== 建立資產簽核草稿 ==
+User -> Frontend: 確認並送出資產資料
+Frontend -> AssetAPI: POST /api/isms/asset/
+AssetAPI -> POM: publish_create_event(asset 草稿)
+AssetAPI --> Frontend: 成功回應 (僅暫存事件)
+
+Frontend -> ApprovalAPI: POST /api/system/approval/
+ApprovalAPI -> POM: consume_event_and_get_domain(asset 草稿)
+ApprovalAPI -> Database: INSERT asset 草稿 (is_current = false)
+ApprovalAPI -> Database: INSERT approval (final_status = pending)
+ApprovalAPI -> MQ: 建立 pending_approval_queue_{approval_id}
+ApprovalAPI --> Frontend: 回傳簽核單與待簽資訊
+Frontend --> User: 顯示簽核已送出
+
+== 核准完成與落地 ==
+actor Signer as "簽核者"
+Signer -> Frontend: 點擊核准
+Frontend -> ApprovalAPI: POST /api/system/approval/{approval_id}/user/{user_id}/approved
+ApprovalAPI -> MQ: publish approval.completed.approved (payload)
+ApprovalAPI --> Frontend: 回傳簽核成功
+Frontend --> Signer: 顯示核准成功通知
+
+MQ -> Worker: deliver approval.completed.approved
+Worker -> Database: CALL system_handle_object_approval_workflow_for_approved(...)
+Worker -> Mail: approved_success_notify(email, approval_id)
+Worker -> MQ: delete pending_approval_queue_{approval_id}
+Worker --> MQ: ACK
+
 @enduml

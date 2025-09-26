@@ -1,24 +1,24 @@
 @startuml
 actor User as "使用者"
 participant Frontend
-participant Backend
-participant "AI Module" as AI
-participant Database
-participant MinIO
+participant "Document API" as DocumentAPI
+participant "向量索引 (pgvector)" as VectorStore
+participant "Ollama 模型" as LLM
 
-User ->> Frontend: 進入document頁面查看已歸檔文件
-Frontend ->> Backend: GET /api/system/document/
-Backend ->> Database: 查詢已歸檔的文件列表
-Database -->> Backend: 回傳已歸檔文件資料
-Backend -->> Frontend: 回傳文件列表
-Frontend -->> User: 顯示已歸檔的文件列表
+User ->> Frontend: 進入文件頁面
+Frontend ->> DocumentAPI: GET /api/system/document/
+DocumentAPI ->> VectorStore: 查詢已歸檔文件列表
+VectorStore -->> DocumentAPI: 回傳文件資訊
+DocumentAPI -->> Frontend: 回傳文件列表
+Frontend -->> User: 顯示文件清單
 
-User ->> Frontend: 點擊「AI 文件摘要」按鈕
-Frontend ->> Backend: POST /api/system/document/summarize/{document_id}
-Backend ->> Database: 讀取已歸檔的文件內容
-Database -->> Backend: 回傳 embed 的文件內容
-Backend ->> AI: 調用 AI 模型進行文件摘要
-AI -->> Backend: 回傳文件摘要結果
-Backend -->> Frontend: 回傳 AI 摘要完整結果
-Frontend -->> User: 顯示文件摘要與分析結果
+User ->> Frontend: 點擊「AI 文件摘要」
+Frontend ->> DocumentAPI: GET /api/system/document/summarize/{document_id}
+DocumentAPI ->> VectorStore: as_retriever(filter doc_id)
+VectorStore -->> DocumentAPI: 回傳文件切片內容
+DocumentAPI ->> LLM: 以繁體中文生成摘要
+LLM -->> DocumentAPI: 回傳條列式摘要
+DocumentAPI -->> Frontend: 回傳摘要結果
+Frontend -->> User: 顯示 AI 摘要與分析
+
 @enduml

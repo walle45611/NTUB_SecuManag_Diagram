@@ -1,0 +1,24 @@
+@startuml
+autonumber
+actor "使用者 (Signer)" as Signer
+participant Frontend
+participant Backend
+queue RabbitMQ
+participant Worker
+database Database
+participant "RiskTrackQueue" as RiskQueue
+database "向量索引\n(pgvector)" as VectorStore
+participant "郵件服務" as Mail
+
+Signer -> Frontend: 核准風險/資產/威脅/弱點/ISMS
+Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
+Backend -> RabbitMQ: publish approval.completed.approved (risk payload)
+Backend --> Frontend: 回傳成功
+
+RabbitMQ -> Worker: deliver message
+Worker -> Database: 更新風險版本 + 四階證明
+Worker -> RiskQueue: 重建追蹤隊列
+Worker -> VectorStore: 更新向量索引
+Worker -> Mail: 寄送通知
+Worker -> RabbitMQ: 刪除 queue 並 ACK
+@enduml
