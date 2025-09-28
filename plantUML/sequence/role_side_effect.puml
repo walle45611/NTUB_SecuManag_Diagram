@@ -1,77 +1,77 @@
-@startuml 權限角色副作用處理
-title 權限角色副作用處理循序圖
+@startuml Role Category Approval Side Effect
+  !theme plain
+  skinparam sequenceMessageAlign center
+  skinparam maxMessageSize 150
 
-participant "Approval Service" as ApprovalSvc
-participant "Permission Side Effect Orchestrator" as Orchestrator
-participant "Role Repository" as RoleRepo
-participant "Permission Repository" as PermRepo
-participant "User Permission Service" as UserPermSvc
-participant "Resource Access Service" as ResourceSvc
-participant "Session Manager" as SessionMgr
-participant "Cache Service" as CacheSvc
-participant "LDAP Service" as LDAP
-participant "SSO Service" as SSO
-participant "Audit Log" as AuditLog
-participant "Rollback Handler" as RollbackHandler
+  title 角色類別 (Role Category) Approval Side Effect 流程
 
-== 權限角色副作用處理觸發 ==
+  participant Consumer as "approval_approved_callback"
+  participant ApprovalSvc as "ApprovalService\n(RabbitMQ)"
+  participant RoleRepo as "RoleRepository"
+  participant Database as "PostgreSQL Database"
+  participant DocumentSvc as "DocumentService"
+  participant Email as "NotificationService"
 
-ApprovalSvc -> Orchestrator : start_permission_side_effects(approval_data)
-activate Orchestrator
+  note over Consumer: 從 RabbitMQ 接收到\n"approval.completed.approved"\n消息\nrelated_object_category = "role"
 
-== 1. 角色定義更新 ==
+  == 通用處理階段 ==
 
-Orchestrator -> RoleRepo : update_role_definition(role_id, new_definition)
-activate RoleRepo
-alt 角色更新成功
-    RoleRepo --> Orchestrator : role_updated
-    deactivate RoleRepo
-    Orchestrator -> RollbackHandler : register_rollback_point("role_definition", previous_definition)
-else 角色更新失敗
-    RoleRepo --> Orchestrator : role_update_failed
-    deactivate RoleRepo
-    Orchestrator --> ApprovalSvc : side_effects_failed("Role update failed")
-    return
-end
+  Consumer -> ApprovalSvc: handle_side_effects(\napproval, "approved", loop)
+  note right: approval_service.py:151
 
-== 2. 權限矩陣更新 ==
+  ApprovalSvc -> ApprovalSvc: _validate_approval(approval)
+  note right: 驗證 related_object_category = "role"\n對應到 ApprovalCategory.ROLE
 
-Orchestrator -> PermRepo : update_permission_matrix(role_id, permissions)
-activate PermRepo
-PermRepo --> Orchestrator : permissions_updated
-deactivate PermRepo
+  ApprovalSvc -> ApprovalSvc: _process_signers_for_approval(\napproval, "approved")
+  note right: 處理簽核人資訊
 
-== 3. 用戶權限重新計算 ==
+  == 角色類別特定處理 ==
 
-Orchestrator -> UserPermSvc : recalculate_user_permissions(affected_users[])
-activate UserPermSvc
-loop 對每個受影響用戶
-    UserPermSvc -> UserPermSvc : calculate_effective_permissions(user_id)
-    UserPermSvc -> CacheSvc : update_permission_cache(user_id)
-    UserPermSvc -> SessionMgr : invalidate_user_sessions(user_id)
-end
-UserPermSvc --> Orchestrator : user_permissions_updated
-deactivate UserPermSvc
+  ApprovalSvc -> ApprovalSvc: _handle_approval_side_effects(\napproval, "approved", creator_id, signers, RoleRepo, loop)
+  note right: approval_service.py:108-150
 
-== 4. 外部系統同步 ==
+  ApprovalSvc -> RoleRepo: handle_approved(\napproval, creator_id, signers, "approved")
+  note right: role_repository.py:31-86
 
-par LDAP 同步
-    Orchestrator -> LDAP : sync_role_permissions(role_id, permissions)
-    LDAP --> Orchestrator : ldap_synced
-and SSO 同步
-    Orchestrator -> SSO : update_role_claims(role_id, claims)
-    SSO --> Orchestrator : sso_synced
-end
+  RoleRepo -> RoleRepo: _get_permission_ids_by_role_id(role_id)
+  note right: role_repository.py:13-29\n獲取角色相關的權限 ID 列表
 
-== 5. 資源存取控制更新 ==
+  RoleRepo -> Database: SELECT system_get_role_permission_ids_by_role_id(:role_id)
+  note right: role_repository.py:17-27\n查詢角色權限關聯
 
-Orchestrator -> ResourceSvc : update_access_control_lists(role_id, resources)
-activate ResourceSvc
-ResourceSvc --> Orchestrator : access_control_updated
-deactivate ResourceSvc
+  Database --> RoleRepo: permission_ids: list[UUID]
+  note right: 返回權限 ID 陣列
 
-Orchestrator -> AuditLog : log_completion("Permission side effects completed", role_id)
-Orchestrator --> ApprovalSvc : side_effects_completed_successfully()
-deactivate Orchestrator
+  RoleRepo -> RoleRepo: 準備文件資訊
+  note right: document_id = uuid.uuid4()\ndocument_name = f"{approval_name}_{action_type}_{final_status}_四階證明文件"
 
-@enduml
+  RoleRepo -> Database: CALL system_handle_approved_role_approval(\nrole_id, permission_ids, approval_id, action_type,\nfinal_status, signers, document_id, document_name,\nuploadfile_entity_id, creator_id)
+  note right: role_repository.py:55-84\n執行角色權限簽核處理
+
+  Database --> RoleRepo: document_id
+  note right: 返回生成的文件 ID
+
+  RoleRepo --> ApprovalSvc: document_id
+
+  note over ApprovalSvc: 角色類別不需要風險追蹤\n(跳過 _risk_tracking_logic_service)
+
+  == 文件歸檔階段 ==
+
+  ApprovalSvc -> ApprovalSvc: _document_repo.get_document_archive_ids_by_related_object(\nrelated_object_id, "role")
+  note right: approval_service.py:130-135
+
+  ApprovalSvc -> DocumentSvc: archive_document(\ndocument_id, document_archive_ids, "role")
+  note right: approval_service.py:137-141
+
+  == 通知與清理階段 ==
+
+  Consumer -> Email: approved_success_notify(\nemail, approval_id)
+  note right: approval_approved_callback.py:33-35
+
+  Consumer -> Consumer: queue_service.delete_queue(\napproval_id, loop)
+  note right: approval_approved_callback.py:38-39
+
+  Consumer -> Consumer: ch.basic_ack(delivery_tag)
+  note right: approval_approved_callback.py:41
+
+  @enduml

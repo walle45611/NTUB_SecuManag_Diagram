@@ -1,332 +1,66 @@
-@startuml 用戶副作用處理
-title 用戶副作用處理循序圖
+  @startuml User Category Approval Side Effect
+  !theme plain
+  skinparam sequenceMessageAlign center
+  skinparam maxMessageSize 150
 
-participant "Approval Service" as ApprovalSvc
-participant "User Side Effect Orchestrator" as Orchestrator
-participant "User Repository" as UserRepo
-participant "Permission Service" as PermissionSvc
-participant "User Status Service" as StatusSvc
-participant "Integration Hub" as IntegrationHub
-participant "LDAP Service" as LDAP
-participant "SSO Service" as SSO
-participant "External Partner System" as Partner
-participant "Archive Service" as ArchiveSvc
-participant "Embedding Service" as EmbeddingService
-participant "Notification Service" as NotifySvc
-participant "Compensation Manager" as CompMgr
-participant "Audit Log" as AuditLog
-participant "Error Alert Service" as ErrorAlert
+  title 用戶類別 (User Category) Approval Side Effect 流程
 
-== 用戶副作用處理觸發 ==
+  participant Consumer as "approval_approved_callback"
+  participant ApprovalSvc as "ApprovalService\n(RabbitMQ)"
+  participant UserRepo as "UserRepository"
+  participant Database as "PostgreSQL Database"
+  participant DocumentSvc as "DocumentService"
+  participant Email as "NotificationService"
 
-ApprovalSvc -> Orchestrator : start_user_side_effects(approval_data)
-activate Orchestrator
+  note over Consumer: 從 RabbitMQ 接收到\n"approval.completed.approved"\n消息
 
-Orchestrator -> AuditLog : log_start("User side effects processing", approval_id)
-activate AuditLog
-AuditLog --> Orchestrator : logged
-deactivate AuditLog
+  == 通用處理階段 ==
 
-Orchestrator -> CompMgr : initialize_compensation_context()
-activate CompMgr
-CompMgr --> Orchestrator : context_ready
-deactivate CompMgr
+  Consumer -> ApprovalSvc: handle_side_effects(\napproval, "approved", loop)
+  note right: approval_service.py:151
 
-== 1. 用戶資料更新 ==
+  ApprovalSvc -> ApprovalSvc: _validate_approval(approval)
+  note right: 驗證 related_object_category = "user"
 
-Orchestrator -> UserRepo : get_current_user_data(user_id)
-activate UserRepo
-UserRepo --> Orchestrator : current_user_data
-deactivate UserRepo
+  ApprovalSvc -> ApprovalSvc: _process_signers_for_approval(\napproval, "approved")
+  note right: 處理簽核人資訊
 
-Orchestrator -> UserRepo : update_user_profile(user_id, new_data)
-activate UserRepo
+  == 用戶類別特定處理 ==
 
-alt 用戶資料更新成功
-    UserRepo -> UserRepo : validate_data(new_data)
-    UserRepo -> UserRepo : backup_previous_data()
-    UserRepo -> UserRepo : apply_changes()
-    UserRepo --> Orchestrator : user_profile_updated
-    deactivate UserRepo
-    
-    Orchestrator -> CompMgr : register_compensation("revert_user_profile", previous_data)
-    activate CompMgr
-    CompMgr --> Orchestrator : compensation_registered
-    deactivate CompMgr
-    
-else 用戶資料更新失敗
-    UserRepo --> Orchestrator : user_update_failed(error_details)
-    deactivate UserRepo
-    
-    Orchestrator -> ErrorAlert : send_immediate_alert("User update failed", error_details)
-    activate ErrorAlert
-    ErrorAlert --> Orchestrator : alert_sent
-    deactivate ErrorAlert
-    
-    Orchestrator -> CompMgr : trigger_all_compensations()
-    activate CompMgr
-    CompMgr --> Orchestrator : compensations_completed
-    deactivate CompMgr
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("User data update failed")
-    deactivate Orchestrator
-    return
-end
+  ApprovalSvc -> ApprovalSvc: _handle_approval_side_effects(\napproval, "approved", creator_id, signers, UserRepo, loop)
+  note right: approval_service.py:108-150
 
-== 2. 用戶權限變更 ==
+  ApprovalSvc -> UserRepo: handle_approved(\napproval, creator_id, signers, "approved")
+  note right: user_repository.py:47-98
 
-Orchestrator -> PermissionSvc : get_current_permissions(user_id)
-activate PermissionSvc
-PermissionSvc --> Orchestrator : current_permissions
-deactivate PermissionSvc
+  UserRepo -> UserRepo: 準備文件資訊
+  note right: document_id = uuid.uuid4()\ndocument_name = f"{approval_name}_{action_type}_{final_status}_四階證明文件"
 
-Orchestrator -> PermissionSvc : update_user_permissions(user_id, permission_changes)
-activate PermissionSvc
+  UserRepo -> Database: CALL system_handle_approved_user_approval(\nuser_id, approval_id, action_type, final_status,\nsigners, document_id, document_name,\nuploadfile_entity_id, creator_id)
+  note right: user_repository.py:69-96\n執行 PostgreSQL 預存程序
 
-alt 權限變更成功
-    PermissionSvc -> PermissionSvc : validate_permission_rules()
-    PermissionSvc -> PermissionSvc : backup_current_permissions()
-    PermissionSvc -> PermissionSvc : apply_permission_changes()
-    PermissionSvc --> Orchestrator : permissions_updated
-    deactivate PermissionSvc
-    
-    Orchestrator -> CompMgr : register_compensation("revert_permissions", previous_permissions)
-    activate CompMgr
-    CompMgr --> Orchestrator : compensation_registered
-    deactivate CompMgr
-    
-else 權限變更失敗
-    PermissionSvc --> Orchestrator : permission_update_failed(error_details)
-    deactivate PermissionSvc
-    
-    Orchestrator -> ErrorAlert : send_immediate_alert("Permission update failed", error_details)
-    activate ErrorAlert
-    ErrorAlert --> Orchestrator : alert_sent
-    deactivate ErrorAlert
-    
-    Orchestrator -> CompMgr : trigger_all_compensations()
-    activate CompMgr
-    CompMgr --> Orchestrator : compensations_completed
-    deactivate CompMgr
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("Permission update failed")
-    deactivate Orchestrator
-    return
-end
+  Database --> UserRepo: document_id
+  note right: 返回生成的文件 ID
 
-== 3. 用戶狀態變更 ==
+  UserRepo --> ApprovalSvc: document_id
 
-Orchestrator -> StatusSvc : get_current_status(user_id)
-activate StatusSvc
-StatusSvc --> Orchestrator : current_status
-deactivate StatusSvc
+  note over ApprovalSvc: 用戶類別不需要風險追蹤\n(跳過 _risk_tracking_logic_service)
 
-Orchestrator -> StatusSvc : update_user_status(user_id, new_status)
-activate StatusSvc
+  ApprovalSvc -> ApprovalSvc: _document_repo.get_document_archive_ids_by_related_object(\nrelated_object_id, "user")
+  note right: approval_service.py:130-135
 
-alt 狀態變更成功
-    StatusSvc -> StatusSvc : validate_status_transition()
-    StatusSvc -> StatusSvc : backup_current_status()
-    StatusSvc -> StatusSvc : apply_status_change()
-    StatusSvc --> Orchestrator : status_updated
-    deactivate StatusSvc
-    
-    Orchestrator -> CompMgr : register_compensation("revert_status", previous_status)
-    activate CompMgr
-    CompMgr --> Orchestrator : compensation_registered
-    deactivate CompMgr
-    
-else 狀態變更失敗
-    StatusSvc --> Orchestrator : status_update_failed(error_details)
-    deactivate StatusSvc
-    
-    Orchestrator -> ErrorAlert : send_immediate_alert("Status update failed", error_details)
-    activate ErrorAlert
-    ErrorAlert --> Orchestrator : alert_sent
-    deactivate ErrorAlert
-    
-    Orchestrator -> CompMgr : trigger_all_compensations()
-    activate CompMgr
-    CompMgr --> Orchestrator : compensations_completed
-    deactivate CompMgr
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("Status update failed")
-    deactivate Orchestrator
-    return
-end
+  ApprovalSvc -> DocumentSvc: archive_document(\ndocument_id, document_archive_ids, "user")
+  note right: approval_service.py:137-141
 
-== 4. 外部系統同步 ==
+  == 通知與清理階段 ==
 
-loop 對每個外部系統
-    Orchestrator -> IntegrationHub : sync_user_data(user_id, changes, target_system)
-    activate IntegrationHub
-    
-    alt 目標系統 = LDAP
-        IntegrationHub -> LDAP : update_ldap_entry(user_id, ldap_attributes)
-        activate LDAP
-        
-        alt LDAP 同步成功
-            LDAP --> IntegrationHub : ldap_updated
-            deactivate LDAP
-            IntegrationHub --> Orchestrator : ldap_sync_successful
-            
-            Orchestrator -> CompMgr : register_compensation("revert_ldap", previous_ldap_data)
-            activate CompMgr
-            CompMgr --> Orchestrator : compensation_registered
-            deactivate CompMgr
-            
-        else LDAP 同步失敗
-            LDAP --> IntegrationHub : ldap_sync_failed(error)
-            deactivate LDAP
-            
-            IntegrationHub -> IntegrationHub : retry_ldap_sync(3 times with backoff)
-            
-            alt 重試成功
-                IntegrationHub --> Orchestrator : ldap_sync_recovered
-            else 重試失敗
-                IntegrationHub --> Orchestrator : ldap_sync_permanently_failed
-                
-                Orchestrator -> CompMgr : trigger_all_compensations()
-                activate CompMgr
-                CompMgr --> Orchestrator : compensations_completed
-                deactivate CompMgr
-                
-                Orchestrator --> ApprovalSvc : side_effects_failed("LDAP sync failed")
-                deactivate IntegrationHub
-                deactivate Orchestrator
-                return
-            end
-        end
-        
-    else 目標系統 = SSO
-        IntegrationHub -> SSO : update_sso_claims(user_id, claims)
-        activate SSO
-        
-        alt SSO 同步成功
-            SSO --> IntegrationHub : sso_updated
-            deactivate SSO
-            IntegrationHub --> Orchestrator : sso_sync_successful
-            
-            Orchestrator -> CompMgr : register_compensation("revert_sso", previous_sso_claims)
-            activate CompMgr
-            CompMgr --> Orchestrator : compensation_registered
-            deactivate CompMgr
-            
-        else SSO 同步失敗
-            SSO --> IntegrationHub : sso_sync_failed(error)
-            deactivate SSO
-            
-            IntegrationHub -> IntegrationHub : retry_sso_sync(3 times with backoff)
-            
-            alt 重試成功
-                IntegrationHub --> Orchestrator : sso_sync_recovered
-            else 重試失敗
-                IntegrationHub --> Orchestrator : sso_sync_permanently_failed
-                
-                Orchestrator -> CompMgr : trigger_all_compensations()
-                activate CompMgr
-                CompMgr --> Orchestrator : compensations_completed
-                deactivate CompMgr
-                
-                Orchestrator --> ApprovalSvc : side_effects_failed("SSO sync failed")
-                deactivate IntegrationHub
-                deactivate Orchestrator
-                return
-            end
-        end
-        
-    else 目標系統 = 外部合作夥伴
-        IntegrationHub -> Partner : push_user_delta(user_id, change_payload)
-        activate Partner
-        
-        alt 合作夥伴同步成功
-            Partner --> IntegrationHub : partner_updated
-            deactivate Partner
-            IntegrationHub --> Orchestrator : partner_sync_successful
-            
-            Orchestrator -> CompMgr : register_compensation("revert_partner", previous_partner_data)
-            activate CompMgr
-            CompMgr --> Orchestrator : compensation_registered
-            deactivate CompMgr
-            
-        else 合作夥伴同步失敗
-            Partner --> IntegrationHub : partner_sync_failed(error)
-            deactivate Partner
-            
-            IntegrationHub -> IntegrationHub : retry_partner_sync(3 times with backoff)
-            
-            alt 重試成功
-                IntegrationHub --> Orchestrator : partner_sync_recovered
-            else 重試失敗
-                IntegrationHub --> Orchestrator : partner_sync_permanently_failed
-                
-                note right of Orchestrator : 合作夥伴同步失敗\n不阻斷主流程\n但需要記錄並告警
-                
-                Orchestrator -> ErrorAlert : send_partner_sync_warning(partner_name, error)
-                activate ErrorAlert
-                ErrorAlert --> Orchestrator : warning_sent
-                deactivate ErrorAlert
-            end
-        end
-    end
-    
-    deactivate IntegrationHub
-end
+  Consumer -> Email: approved_success_notify(\nemail, approval_id)
+  note right: approval_approved_callback.py:33-35
 
-== 5. 歸檔舊資料 ==
+  Consumer -> Consumer: queue_service.delete_queue(\napproval_id, loop)
+  note right: approval_approved_callback.py:38-39
 
-Orchestrator -> ArchiveSvc : check_previous_version(user_id)
-activate ArchiveSvc
+  Consumer -> Consumer: ch.basic_ack(delivery_tag)
+  note right: approval_approved_callback.py:41
 
-alt 有舊版本資料
-    ArchiveSvc -> ArchiveSvc : delete_previous_version()
-    ArchiveSvc -> EmbeddingService : create_embedding(current_user_data)
-    activate EmbeddingService
-    EmbeddingService --> ArchiveSvc : embedding_created
-    deactivate EmbeddingService
-    
-    ArchiveSvc -> ArchiveSvc : archive_with_embedding()
-    ArchiveSvc --> Orchestrator : archival_completed
-    
-else 無舊版本資料
-    ArchiveSvc -> EmbeddingService : create_embedding(current_user_data)
-    activate EmbeddingService
-    EmbeddingService --> ArchiveSvc : embedding_created
-    deactivate EmbeddingService
-    
-    ArchiveSvc -> ArchiveSvc : archive_first_version()
-    ArchiveSvc --> Orchestrator : archival_completed
-end
-
-deactivate ArchiveSvc
-
-== 6. 發送通知 ==
-
-Orchestrator -> NotifySvc : send_user_update_notification(user_id, changes_summary)
-activate NotifySvc
-
-NotifySvc -> NotifySvc : generate_notification_content()
-NotifySvc -> NotifySvc : send_email_to_user()
-NotifySvc -> NotifySvc : send_email_to_initiator()
-
-NotifySvc --> Orchestrator : notifications_sent
-deactivate NotifySvc
-
-== 完成處理 ==
-
-Orchestrator -> AuditLog : log_completion("User side effects completed successfully", approval_id)
-activate AuditLog
-AuditLog --> Orchestrator : completion_logged
-deactivate AuditLog
-
-Orchestrator -> CompMgr : clear_compensation_context()
-activate CompMgr
-CompMgr --> Orchestrator : context_cleared
-deactivate CompMgr
-
-Orchestrator --> ApprovalSvc : side_effects_completed_successfully()
-deactivate Orchestrator
-
-note over ApprovalSvc, ErrorAlert : 用戶副作用處理確保了：\n1. 資料一致性（補償機制）\n2. 外部系統同步\n3. 舊資料歸檔與 embedding\n4. 完整的審計追蹤\n5. 錯誤處理與告警
-
-@enduml
+  @enduml

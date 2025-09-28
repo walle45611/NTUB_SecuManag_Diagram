@@ -1,73 +1,67 @@
-@startuml 簽核副作用處理
-title 簽核副作用處理循序圖
+  @startuml
 
-participant "Approval Service" as ApprovalSvc
-participant "Approval Side Effect Orchestrator" as Orchestrator
-participant "Workflow Engine" as WorkflowEngine
-participant "Template Service" as TemplateSvc
-participant "Approval History Service" as HistorySvc
-participant "Metrics Service" as MetricsSvc
-participant "Notification Service" as NotifySvc
-participant "Performance Analyzer" as PerfAnalyzer
-participant "Audit Log" as AuditLog
+  actor User as "用戶"
+  participant API as "API Router"
+  participant Signer as "ApprovalSignerService"
+  participant Domain as "Approval Domain"
+  participant SideEffect as "ApprovalSideEffectManageService"
+  participant Queue as "CompletedApprovalQueueManageService"
+  participant RabbitMQ as "RabbitMQ"
+  participant Consumer as "approval_approved_callback"
+  participant ApprovalSvc as "ApprovalService\n(RabbitMQ)"
+  participant Repo as "Repository"
+  participant Email as "NotificationService"
 
-== 簽核副作用處理觸發 ==
+  User -> API: POST /approval/{id}/sign\n(批准簽核)
+  API -> Signer: signed_approval(session, user_id, approval_id)
+  Signer -> Signer: _process_signer_action(\nsession, user_id, approval_id, False)
+  Signer -> Domain: get_approval_domain(\nsession, approval_id)
+  Signer -> Domain: apply_signer_action(\nuser_id, is_reject=False)
+  Domain -> Domain: approve_signer(user_id)
+  Domain -> Domain: adjust_signer_deadlines(idx)
+  Domain --> Signer: final_status (ApprovalStatus)
 
-ApprovalSvc -> Orchestrator : start_approval_side_effects(approval_data)
-activate Orchestrator
+  alt final_status == pending
+      Signer -> Signer: update_approval_service.\nupdate_approval()
+  end
 
-== 1. 工作流程狀態更新 ==
+  Signer -> SideEffect: handle_side_effects(\nsession, approval_id, final_status)
+  SideEffect -> SideEffect: _prepare_serializable_approval(approval)
 
-Orchestrator -> WorkflowEngine : update_workflow_state(workflow_id, new_state)
-activate WorkflowEngine
-WorkflowEngine -> WorkflowEngine : validate_state_transition()
-WorkflowEngine -> WorkflowEngine : update_workflow_metadata()
-WorkflowEngine --> Orchestrator : workflow_updated
-deactivate WorkflowEngine
+  alt final_status == approved
+      SideEffect -> SideEffect: _handle_approved(\nsession, approval)
+      SideEffect -> Queue: publish_approved_approval(\nsession, payload)
+      Queue -> RabbitMQ: publish to\n"approval.completed.approved"
 
-== 2. 簽核範本優化 ==
+  else final_status == rejected
+      SideEffect -> SideEffect: _handle_rejected(\nsession, approval)
+      SideEffect -> Queue: publish_rejected_approval(\nsession, payload)
+      Queue -> RabbitMQ: publish to\n"approval.completed.rejected"
+  end
 
-Orchestrator -> TemplateSvc : analyze_approval_pattern(approval_data)
-activate TemplateSvc
-TemplateSvc -> PerfAnalyzer : analyze_bottlenecks(approval_id)
-activate PerfAnalyzer
-PerfAnalyzer --> TemplateSvc : performance_metrics
-deactivate PerfAnalyzer
-TemplateSvc -> TemplateSvc : suggest_template_improvements()
-TemplateSvc --> Orchestrator : template_analysis_completed
-deactivate TemplateSvc
+  == 非同步處理階段 ==
 
-== 3. 歷史記錄歸檔 ==
+  RabbitMQ --> Consumer: consume message from\n"approval.completed.approved"
+  Consumer -> ApprovalSvc: handle_side_effects(\napproval, "approved", loop)
+  ApprovalSvc -> ApprovalSvc: _validate_approval(approval)
+  ApprovalSvc -> ApprovalSvc: _process_signers_for_approval(\napproval, status)
+  ApprovalSvc -> ApprovalSvc: _handle_approval_side_effects()
 
-Orchestrator -> HistorySvc : archive_approval_record(approval_id)
-activate HistorySvc
-HistorySvc -> HistorySvc : create_approval_snapshot()
-HistorySvc -> HistorySvc : update_statistics()
-HistorySvc --> Orchestrator : approval_archived
-deactivate HistorySvc
+  alt status == approved
+      ApprovalSvc -> Repo: handle_approved(\napproval, creator_id, signers, status)      
+      alt related_object_category == "risk"
+          ApprovalSvc -> ApprovalSvc: _risk_tracking_logic_service.\nhandle_tracking_after_approval()
+      end
 
-== 4. 性能指標更新 ==
+      ApprovalSvc -> ApprovalSvc: _document_service.\narchive_document()
 
-Orchestrator -> MetricsSvc : update_approval_metrics(approval_data)
-activate MetricsSvc
-MetricsSvc -> MetricsSvc : calculate_processing_time()
-MetricsSvc -> MetricsSvc : update_success_rates()
-MetricsSvc -> MetricsSvc : analyze_approval_patterns()
-MetricsSvc --> Orchestrator : metrics_updated
-deactivate MetricsSvc
+  else status == rejected
+      ApprovalSvc -> Repo: handle_rejected(\napproval, creator_id, signers, status)
+  end
 
-== 5. 後續通知處理 ==
+  Consumer -> Email: approved_success_notify(\nemail, approval_id)
+  Consumer -> Consumer: queue_service.delete_queue(\napproval_id, loop)
+  Consumer -> RabbitMQ: ch.basic_ack(delivery_tag)
+  API --> User: HTTP 200 OK
 
-Orchestrator -> NotifySvc : send_completion_notifications(approval_id)
-activate NotifySvc
-NotifySvc -> NotifySvc : notify_initiator()
-NotifySvc -> NotifySvc : notify_stakeholders()
-NotifySvc -> NotifySvc : update_approval_dashboard()
-NotifySvc --> Orchestrator : notifications_sent
-deactivate NotifySvc
-
-Orchestrator -> AuditLog : log_completion("Approval side effects completed", approval_id)
-Orchestrator --> ApprovalSvc : side_effects_completed_successfully()
-deactivate Orchestrator
-
-@enduml
+  @enduml

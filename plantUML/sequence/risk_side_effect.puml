@@ -1,218 +1,106 @@
-@startuml 風險副作用處理
-title 風險副作用處理循序圖
+@startuml Risk Category Approval Side Effect
+  !theme plain
+  skinparam sequenceMessageAlign center
+  skinparam maxMessageSize 150
 
-participant "Approval Service" as ApprovalSvc
-participant "Risk Side Effect Orchestrator" as Orchestrator
-participant "Risk Repository" as RiskRepo
-participant "Risk Assessment Service" as AssessmentSvc
-participant "Risk Treatment Service" as TreatmentSvc
-participant "Risk Notification Service" as RiskNotifySvc
-participant "Compliance Service" as ComplianceSvc
-participant "Control Framework Service" as ControlSvc
-participant "Impact Calculator" as ImpactCalc
-participant "Risk Matrix Service" as MatrixSvc
-participant "Dashboard Service" as DashboardSvc
-participant "Audit Log" as AuditLog
-participant "Rollback Handler" as RollbackHandler
+  title 風險類別 (Risk Category) Approval Side Effect 流程
 
-== 風險副作用處理觸發 ==
+  participant Consumer as "approval_approved_callback"
+  participant ApprovalSvc as "ApprovalService\n(RabbitMQ)"
+  participant RiskRepo as "RiskRepository"
+  participant Database as "PostgreSQL Database"
+  participant RiskTrackSvc as "RiskTrackService"
+  participant RiskTrackQueue as "RiskTrackQueueManageService"
+  participant DocumentSvc as "DocumentService"
+  participant Email as "NotificationService"
 
-ApprovalSvc -> Orchestrator : start_risk_side_effects(approval_data)
-activate Orchestrator
+  note over Consumer: 從 RabbitMQ 接收到\n"approval.completed.approved"\n消息\nrelated_object_category = "risk"
 
-Orchestrator -> AuditLog : log_start("Risk side effects processing", risk_id)
-activate AuditLog
-AuditLog --> Orchestrator : logged
-deactivate AuditLog
+  == 通用處理階段 ==
 
-== 1. 風險評估更新 ==
+  Consumer -> ApprovalSvc: handle_side_effects(\napproval, "approved", loop)
+  note right: approval_service.py:151
 
-Orchestrator -> RiskRepo : get_current_risk(risk_id)
-activate RiskRepo
-RiskRepo --> Orchestrator : current_risk_data
-deactivate RiskRepo
+  ApprovalSvc -> ApprovalSvc: _validate_approval(approval)
+  note right: 驗證 related_object_category = "risk"\n對應到 ApprovalCategory.RISK
 
-Orchestrator -> AssessmentSvc : update_risk_assessment(risk_id, new_assessment_data)
-activate AssessmentSvc
+  ApprovalSvc -> ApprovalSvc: _process_signers_for_approval(\napproval, "approved")
+  note right: 處理簽核人資訊
 
-alt 風險評估更新成功
-    AssessmentSvc -> AssessmentSvc : validate_assessment_criteria()
-    AssessmentSvc -> AssessmentSvc : calculate_risk_score()
-    AssessmentSvc -> MatrixSvc : update_risk_matrix_position(risk_id, new_score)
-    activate MatrixSvc
-    MatrixSvc --> AssessmentSvc : matrix_updated
-    deactivate MatrixSvc
-    
-    AssessmentSvc -> RiskRepo : save_updated_assessment(risk_id, assessment)
-    activate RiskRepo
-    RiskRepo --> AssessmentSvc : assessment_saved
-    deactivate RiskRepo
-    
-    AssessmentSvc --> Orchestrator : assessment_updated
-    deactivate AssessmentSvc
-    
-    Orchestrator -> RollbackHandler : register_rollback_point("risk_assessment", previous_assessment)
-    activate RollbackHandler
-    RollbackHandler --> Orchestrator : rollback_registered
-    deactivate RollbackHandler
-    
-else 風險評估更新失敗
-    AssessmentSvc --> Orchestrator : assessment_update_failed(error)
-    deactivate AssessmentSvc
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("Risk assessment update failed")
-    deactivate Orchestrator
-    return
-end
+  == 風險類別特定處理 ==
 
-== 2. 風險處理措施更新 ==
+  ApprovalSvc -> ApprovalSvc: _handle_approval_side_effects(\napproval, "approved", creator_id, signers, RiskRepo, loop)
+  note right: approval_service.py:108-150
 
-Orchestrator -> TreatmentSvc : update_risk_treatment(risk_id, treatment_plan)
-activate TreatmentSvc
+  ApprovalSvc -> RiskRepo: handle_approved(\napproval, creator_id, signers, "approved")
+  note right: risk_repository.py:13-66
 
-alt 處理措施更新成功
-    TreatmentSvc -> TreatmentSvc : validate_treatment_plan()
-    TreatmentSvc -> TreatmentSvc : update_mitigation_controls()
-    TreatmentSvc -> ControlSvc : update_control_framework(risk_id, controls)
-    activate ControlSvc
-    ControlSvc --> TreatmentSvc : controls_updated
-    deactivate ControlSvc
-    
-    TreatmentSvc --> Orchestrator : treatment_updated
-    deactivate TreatmentSvc
-    
-    Orchestrator -> RollbackHandler : register_rollback_point("risk_treatment", previous_treatment)
-    activate RollbackHandler
-    RollbackHandler --> Orchestrator : rollback_registered
-    deactivate RollbackHandler
-    
-else 處理措施更新失敗
-    TreatmentSvc --> Orchestrator : treatment_update_failed(error)
-    deactivate TreatmentSvc
-    
-    Orchestrator -> RollbackHandler : initiate_rollback("treatment_update_failed")
-    activate RollbackHandler
-    RollbackHandler -> AssessmentSvc : revert_assessment(risk_id)
-    RollbackHandler -> MatrixSvc : revert_matrix_position(risk_id)
-    RollbackHandler --> Orchestrator : rollback_completed
-    deactivate RollbackHandler
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("Risk treatment update failed")
-    deactivate Orchestrator
-    return
-end
+  RiskRepo -> RiskRepo: 準備文件資訊
+  note right: document_id = uuid.uuid4()\ndocument_name = f"{approval_name}_{action_type}_{final_status}_四階證明文件"
 
-== 3. 合規檢查和更新 ==
+  RiskRepo -> Database: CALL isms_handle_calc_risk_and_approval_for_approved(\nrelated_object_id, action_type, related_object_category,\napproval_id, final_status, signers, document_id,\nname, uploadfile_entity_id, creator_id)
+  note right: risk_repository.py:35-64\n執行 ISMS 風險計算與簽核處理
 
-Orchestrator -> ComplianceSvc : check_compliance_impact(risk_id, changes)
-activate ComplianceSvc
+  Database --> RiskRepo: document_id
+  note right: 返回生成的文件 ID
 
-ComplianceSvc -> ComplianceSvc : evaluate_regulatory_requirements()
-ComplianceSvc -> ComplianceSvc : check_policy_alignment()
-ComplianceSvc -> ComplianceSvc : update_compliance_status()
+  RiskRepo --> ApprovalSvc: document_id
 
-alt 合規檢查通過
-    ComplianceSvc --> Orchestrator : compliance_verified
-    deactivate ComplianceSvc
-else 合規檢查失敗
-    ComplianceSvc --> Orchestrator : compliance_violation_detected(violations)
-    deactivate ComplianceSvc
-    
-    note right of Orchestrator : 合規違規需要立即處理
-    
-    Orchestrator -> RiskNotifySvc : send_compliance_alert(risk_id, violations)
-    activate RiskNotifySvc
-    RiskNotifySvc --> Orchestrator : alert_sent
-    deactivate RiskNotifySvc
-    
-    Orchestrator -> RollbackHandler : initiate_rollback("compliance_violation")
-    activate RollbackHandler
-    RollbackHandler -> TreatmentSvc : revert_treatment(risk_id)
-    RollbackHandler -> AssessmentSvc : revert_assessment(risk_id)
-    RollbackHandler -> MatrixSvc : revert_matrix_position(risk_id)
-    RollbackHandler --> Orchestrator : rollback_completed
-    deactivate RollbackHandler
-    
-    Orchestrator --> ApprovalSvc : side_effects_failed("Compliance violation detected")
-    deactivate Orchestrator
-    return
-end
+  == 風險追蹤特殊處理 ==
 
-== 4. 影響計算和關聯更新 ==
+  note over ApprovalSvc: 風險類別特有：風險追蹤邏輯
 
-Orchestrator -> ImpactCalc : calculate_overall_impact(risk_id, changes)
-activate ImpactCalc
+  ApprovalSvc -> RiskTrackSvc: handle_tracking_after_approval(\napproval, loop)
+  note right: approval_service.py:125-128\nrisk_track_service.py:85-111
 
-ImpactCalc -> ImpactCalc : assess_business_impact()
-ImpactCalc -> ImpactCalc : calculate_financial_exposure()
-ImpactCalc -> ImpactCalc : evaluate_operational_impact()
+  RiskTrackSvc -> RiskRepo: find_by_id(risk_id)
+  note right: risk_repository.py:111-135\n獲取風險資料
 
-ImpactCalc -> RiskRepo : find_related_risks(risk_id)
-activate RiskRepo
-RiskRepo --> ImpactCalc : related_risks[]
-deactivate RiskRepo
+  RiskRepo --> RiskTrackSvc: risk data\n{risk_id, parent_id, state, trackable, tracking_days}
 
-loop 對每個相關風險
-    ImpactCalc -> ImpactCalc : recalculate_related_risk_impact(related_risk_id)
-    ImpactCalc -> AssessmentSvc : update_related_risk_assessment(related_risk_id)
-    activate AssessmentSvc
-    AssessmentSvc --> ImpactCalc : related_assessment_updated
-    deactivate AssessmentSvc
-end
+  alt risk["trackable"] == True
+      RiskTrackSvc -> RiskTrackSvc: _process_risk_tracking_update(\nmessage, loop)
+      note right: risk_track_service.py:53-83
 
-ImpactCalc --> Orchestrator : impact_calculation_completed(impact_report)
-deactivate ImpactCalc
+      RiskTrackSvc -> RiskRepo: find_by_id(parent_id)
+      note right: 獲取父風險資料
 
-== 5. 風險監控和告警更新 ==
+      RiskTrackSvc -> RiskTrackSvc: _has_changes(parent_risk, children_risk)
+      note right: risk_track_service.py:21-28\n比較追蹤欄位變化
 
-Orchestrator -> RiskNotifySvc : update_risk_monitoring(risk_id, new_thresholds)
-activate RiskNotifySvc
+      alt 有追蹤欄位變化
+          alt children_risk["trackable"] == False
+              RiskTrackSvc -> RiskTrackQueue: delete_queue(risk_id, loop)
+              note right: risk_track_service.py:48-51\n刪除追蹤佇列
+          else children_risk["trackable"] == True
+              RiskTrackSvc -> RiskTrackQueue: delete_queue(risk_id, loop)
+              RiskTrackSvc -> RiskTrackQueue: publish(\nrisk_id, tracking_interval_days,\nrisk_trackable, user_ids, loop)
+              note right: risk_track_service.py:30-46\n重新發布追蹤佇列
+          end
+      else 無追蹤欄位變化
+          note over RiskTrackSvc: 跳過處理
+      end
+  else risk["trackable"] == False
+      note over RiskTrackSvc: 不需要追蹤，跳過處理
+  end
 
-RiskNotifySvc -> RiskNotifySvc : configure_alert_thresholds()
-RiskNotifySvc -> RiskNotifySvc : update_monitoring_rules()
-RiskNotifySvc -> RiskNotifySvc : schedule_periodic_reviews()
+  == 文件歸檔階段 ==
 
-RiskNotifySvc --> Orchestrator : monitoring_updated
-deactivate RiskNotifySvc
+  ApprovalSvc -> ApprovalSvc: _document_repo.get_document_archive_ids_by_related_object(\nrelated_object_id, "risk")
+  note right: approval_service.py:130-135
 
-== 6. 儀表板和報告更新 ==
+  ApprovalSvc -> DocumentSvc: archive_document(\ndocument_id, document_archive_ids, "risk")
+  note right: approval_service.py:137-141
 
-Orchestrator -> DashboardSvc : refresh_risk_dashboard(risk_id)
-activate DashboardSvc
+  == 通知與清理階段 ==
 
-DashboardSvc -> DashboardSvc : update_risk_metrics()
-DashboardSvc -> DashboardSvc : refresh_charts_and_graphs()
-DashboardSvc -> DashboardSvc : generate_updated_reports()
+  Consumer -> Email: approved_success_notify(\nemail, approval_id)
+  note right: approval_approved_callback.py:33-35
 
-DashboardSvc --> Orchestrator : dashboard_refreshed
-deactivate DashboardSvc
+  Consumer -> Consumer: queue_service.delete_queue(\napproval_id, loop)
+  note right: approval_approved_callback.py:38-39
 
-== 完成處理和通知 ==
+  Consumer -> Consumer: ch.basic_ack(delivery_tag)
+  note right: approval_approved_callback.py:41
 
-Orchestrator -> RiskNotifySvc : send_risk_update_notification(risk_id, changes_summary, impact_report)
-activate RiskNotifySvc
-
-RiskNotifySvc -> RiskNotifySvc : generate_stakeholder_notifications()
-RiskNotifySvc -> RiskNotifySvc : send_risk_owner_alert()
-RiskNotifySvc -> RiskNotifySvc : notify_compliance_team()
-RiskNotifySvc -> RiskNotifySvc : alert_management_if_high_risk()
-
-RiskNotifySvc --> Orchestrator : notifications_sent
-deactivate RiskNotifySvc
-
-Orchestrator -> AuditLog : log_completion("Risk side effects completed", risk_id)
-activate AuditLog
-AuditLog --> Orchestrator : completion_logged
-deactivate AuditLog
-
-Orchestrator -> RollbackHandler : clear_rollback_context()
-activate RollbackHandler
-RollbackHandler --> Orchestrator : context_cleared
-deactivate RollbackHandler
-
-Orchestrator --> ApprovalSvc : side_effects_completed_successfully(impact_report)
-deactivate Orchestrator
-
-note over ApprovalSvc, RollbackHandler : 風險副作用處理確保了：\n1. 風險評估的準確性\n2. 處理措施的有效性\n3. 合規要求的滿足\n4. 關聯風險的同步更新\n5. 實時監控和告警\n6. 管理儀表板的即時性
-
-@enduml
+  @enduml
