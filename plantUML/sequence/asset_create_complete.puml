@@ -73,12 +73,9 @@ RabbitMQ -[#CC0000]>> Consumer: TTL 過期
 Consumer -[#CC0000]>> RabbitMQ: 發佈至 DLQ
 Approver -[#9900CC]>> Frontend: 簽核確認
 Frontend -[#9900CC]>> Backend: POST /api/system/approval/{id}/approved
-Backend -[#9900CC]>> Backend: 透過 Event Sourcing 查找 Domain Event 中的暫存物件
-Backend -[#9900CC]>> Backend: 從 Domain Model 取得相關物件 ID
-Backend -[#9900CC]>> PostgreSQL: 執行原子操作 - 批次新增所有暫存物件至資料庫
-Backend -[#9900CC]>> RabbitMQ: 發佈完成訊息 (包含新建立的物件 ID)
+Backend -[#9900CC]>> RabbitMQ: 發佈完成訊息
 RabbitMQ -[#9900CC]>> Consumer: 接收訊息
-Consumer -[#9900CC]>> Ollama: 請求 embed 處理 (使用實際物件 ID)
+Consumer -[#9900CC]>> Ollama: 請求 embed 處理
 Ollama -[#9900CC]>> MxbaiEmbed: chunk 設定
 MxbaiEmbed -[#9900CC]>> MxbaiEmbed: 完成全部 chunk embedding 處理
 MxbaiEmbed --[#9900CC]>> PostgreSQL: 傳送所有 embedding 向量並進行批次新增

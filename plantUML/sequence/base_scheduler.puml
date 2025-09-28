@@ -1,7 +1,7 @@
 @startuml
 
 participant "main.py" as Main
-participant "排程子行程\n(run_scheduler)" as Proc
+participant "排程子行程" as Proc
 participant "BaseScheduler" as Scheduler
 participant "AsyncIOScheduler" as APS
 participant "Job Handler" as JobHandler

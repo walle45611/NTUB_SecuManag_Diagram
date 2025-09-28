@@ -4,6 +4,7 @@ participant Frontend
 participant Backend
 participant Database
 participant Approval as "核准模組"
+participant "PendingOperations\nManager" as POM
 
 User ->> Frontend: 開啟新增風險頁面
 Frontend ->> Backend: GET /api/isms/asset-categories
@@ -15,15 +16,16 @@ Backend -->> Frontend: 回傳威脅列表
 Frontend ->> Backend: GET /api/isms/vulnerabilities?asset={asset_id}
 Backend -->> Frontend: 回傳弱點列表
 User ->> Frontend: 選擇資產並點「新增風險」
-Frontend ->> Backend: POST /api/isms/risk/
-Backend ->> Backend: 暫存至 Domain Event (不直接寫入資料庫)
-Frontend ->> Approval: POST /api/system/approval  （建立風險核准請求）
-Approval -->> Backend: approval_completed（收到核准結果）
-Backend ->> Database: 取得 Asset Setting（公式與變數）
-Backend ->> Database: 讀取 Asset/Threat/Vulnerability 資料
-Backend ->> Backend: 套用公式計算風險值
-Backend ->> Database: 儲存 Risk Result
-Backend -->> Frontend: approval 回應（或空）
-Frontend ->> Backend: GET /api/isms/risk/{risk_id}
-Backend -->> Frontend: 回傳最新 Risk Result
+User -> Frontend: 確認並送出風險資料
+Frontend -> Backend: POST /api/isms/risk/
+Backend -> POM: publish_create_event(risk 暫存資料)
+Backend --> Frontend: 成功回應 (僅暫存事件)
+Frontend -> Approval: POST /api/system/approval/
+Approval -> POM: consume_event_and_get_domain(risk 暫存資料)
+POM --> Approval: 回傳 risk 暫存資料
+Approval -> Database: INSERT risk 暫存資料 (is_current = false)
+Approval -> Database: INSERT approval (final_status = pending)
+Approval -> RabbitMQ: 建立 pending_approval_queue_{approval_id}
+Approval --> Frontend: 回傳簽核單與待簽資訊
+Frontend --> User: 顯示簽核已送出
 @enduml

@@ -2,43 +2,20 @@
 
 actor User as "使用者"
 participant Frontend
-participant "ISMS Setting API" as SettingAPI
-participant "PendingOperations\nManager" as POM
-participant "Approval API" as ApprovalAPI
-queue "RabbitMQ" as MQ
-participant "Approval Worker" as Worker
-database Database
+participant Backend
+participant Database
+participant Approval as "核准模組"
 
-User ->> Frontend: 開啟「編輯資產設定」
-Frontend ->> SettingAPI: GET /api/isms/isms-setting/
-SettingAPI -->> Frontend: 回傳目前設定 (含公式、欄位)
-Frontend ->> Frontend: 顯示編輯表單
-
-User ->> Frontend: 調整設定並點擊「送出」
-Frontend ->> SettingAPI: POST /api/isms/isms-setting/update-isms-setting/
-SettingAPI ->> POM: publish_update_event(isms setting draft)
-SettingAPI -->> Frontend: 僅回傳簽核已觸發
-
-Frontend ->> ApprovalAPI: POST /api/system/approval/
-ApprovalAPI ->> POM: consume_event_and_get_domain(isms setting draft)
-ApprovalAPI ->> Database: INSERT isms_setting 草稿 (is_current = false)
-ApprovalAPI ->> Database: INSERT approval (pending)
-ApprovalAPI ->> MQ: 建立 pending_approval_queue_{approval_id}
-ApprovalAPI -->> Frontend: 顯示簽核單號
-
-actor Approver as "簽核者"
-Approver ->> Frontend: 核准簽核
-Frontend ->> ApprovalAPI: POST /api/system/approval/{approval_id}/user/{user_id}/approved
-ApprovalAPI ->> MQ: publish approval.completed.approved
-ApprovalAPI -->> Frontend: 顯示核准成功
-
-MQ -> Worker: deliver approval.completed.approved
-Worker -> Database: CALL system_handle_object_approval_workflow_for_approved(...)
-Worker --> MQ: ACK & 刪除 pending queue
-
-note over Worker, Database
-  儲存最新 ISMS 設定、套用公式變數，
-  並觸發後續風險重新計算流程。
-end note
-
+User ->> Frontend: 點擊「編輯 ISMS 設定」
+Frontend ->> Backend: GET /api/system/asset-setting/
+Backend ->> Database: 讀取 isms_setting、變數與自訂欄位設定
+Backend -->> Frontend: 回傳設定資料
+Frontend ->> Frontend: 顯示編輯表單 (名稱、描述、策略值、公式編輯器...)
+User ->> Frontend: 修改並點擊「保存」
+Frontend ->> Backend: POST /api/system/asset-setting/update-asset-setting/ (Event Sourcing)
+Frontend ->> Backend: POST /api/system/approval/ (建置 approval domain, 從 Event Sourcing 取得 ISMS 設定資料)
+Backend ->> Database: 寫入 isms_setting 及 approval 資料
+Approval ->> Database: 更新 isms_setting 資料，並觸發重新計算所有風險
+Approval-->>Backend: 核准成功
+Backend -->> Frontend: 回傳成功訊息
 @enduml

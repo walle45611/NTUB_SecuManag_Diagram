@@ -1,20 +1,30 @@
 @startuml
-autonumber
-actor "使用者 (Signer)" as Signer
-participant Frontend
-participant Backend
-queue RabbitMQ
-participant Worker
-database Database
-participant "郵件服務" as Mail
+skinparam ParticipantPadding 12
+skinparam BoxPadding 6
 
-Signer -> Frontend: 核准一般對象
-Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
-Backend -> RabbitMQ: publish approval.completed.approved (generic payload)
-Backend --> Frontend: 回傳成功
+actor "一般使用者" as User
+participant "Frontend\nWizard" as FE
+participant "Asset API\nPOST /api/isms/asset/" as AssetAPI
+participant "AssetServiceImpl" as AssetSvc
+participant "AssetRepository" as AssetRepo
+participant "PendingOperations\nManager" as POM
+participant "Approval API\nPOST /api/system/approval/" as ApprovalAPI
+participant "ApprovalServiceImpl" as ApprovalSvc
+participant "ApprovalRepository" as ApprovalRepo
+participant "PendingApproval\nQueueManage" as PendingQM
+participant "PendingQueue\nManage" as QueueMgr
+queue "RabbitMQ\npending_approval_queue_{id}" as MQ
+participant "EmailServiceImpl" as EmailSvc
+participant "EmailAdapter" as EmailAdapter
 
-RabbitMQ -> Worker: deliver message
-Worker -> Database: 更新對應物件 + 四階證明
-Worker -> Mail: 寄送通知
-Worker -> RabbitMQ: 刪除 queue 並 ACK
+
+ApprovalSvc -> PendingQM: publish_pending_approval(messages)
+PendingQM -> QueueMgr: publish_pending_queue(queue_name, messages)
+QueueMgr -> MQ: 宣告 queue + 發佈 TTL 訊息
+ApprovalSvc -> EmailSvc: send_approval_email(creator, first signer)
+EmailSvc -> EmailAdapter: send_email_async(...)
+EmailAdapter --> EmailSvc: 寄信結果
+EmailSvc --> ApprovalSvc: ok
+ApprovalSvc --> ApprovalAPI: 簽核建立成功
+
 @enduml

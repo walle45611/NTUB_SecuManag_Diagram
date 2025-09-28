@@ -1,16 +1,15 @@
 @startuml
 actor User as "使用者"
 participant Frontend
-participant "Uploadfile API" as UploadAPI
+participant Backend
 participant MinIO
 participant Database
 
 User ->> Frontend: 選擇檔案並送出
-Frontend ->> UploadAPI: POST /api/system/uploadfile_entity/file\n(form-data: file + file_prefix + uuid)
-UploadAPI ->> MinIO: PUT 檔案 (file_prefix/原檔名)
-MinIO -->> UploadAPI: 儲存成功
-UploadAPI ->> Database: INSERT uploadfile_entity (id = uuid, path = file_prefix, name = 原檔名)
-UploadAPI -->> Frontend: 回傳 {"success": true, "uploadfile_entity_id": uuid}
+Frontend ->> Backend: POST /api/system/uploadfile_entity/file
+Backend ->> MinIO: 上傳檔案
+Backend ->> Database: INSERT uploadfile_entity
+Backend -->> Frontend: 回傳成功訊息
 Frontend -->> User: 顯示上傳成功
 
 @enduml
