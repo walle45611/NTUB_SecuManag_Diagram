@@ -1,24 +1,218 @@
-@startuml
-autonumber
-actor "使用者 (Signer)" as Signer
-participant Frontend
-participant Backend
-queue RabbitMQ
-participant Worker
-database Database
-participant "RiskTrackQueue" as RiskQueue
-database "向量索引\n(pgvector)" as VectorStore
-participant "郵件服務" as Mail
+@startuml 風險副作用處理
+title 風險副作用處理循序圖
 
-Signer -> Frontend: 核准風險/資產/威脅/弱點/ISMS
-Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
-Backend -> RabbitMQ: publish approval.completed.approved (risk payload)
-Backend --> Frontend: 回傳成功
+participant "Approval Service" as ApprovalSvc
+participant "Risk Side Effect Orchestrator" as Orchestrator
+participant "Risk Repository" as RiskRepo
+participant "Risk Assessment Service" as AssessmentSvc
+participant "Risk Treatment Service" as TreatmentSvc
+participant "Risk Notification Service" as RiskNotifySvc
+participant "Compliance Service" as ComplianceSvc
+participant "Control Framework Service" as ControlSvc
+participant "Impact Calculator" as ImpactCalc
+participant "Risk Matrix Service" as MatrixSvc
+participant "Dashboard Service" as DashboardSvc
+participant "Audit Log" as AuditLog
+participant "Rollback Handler" as RollbackHandler
 
-RabbitMQ -> Worker: deliver message
-Worker -> Database: 更新風險版本 + 四階證明
-Worker -> RiskQueue: 重建追蹤隊列
-Worker -> VectorStore: 更新向量索引
-Worker -> Mail: 寄送通知
-Worker -> RabbitMQ: 刪除 queue 並 ACK
+== 風險副作用處理觸發 ==
+
+ApprovalSvc -> Orchestrator : start_risk_side_effects(approval_data)
+activate Orchestrator
+
+Orchestrator -> AuditLog : log_start("Risk side effects processing", risk_id)
+activate AuditLog
+AuditLog --> Orchestrator : logged
+deactivate AuditLog
+
+== 1. 風險評估更新 ==
+
+Orchestrator -> RiskRepo : get_current_risk(risk_id)
+activate RiskRepo
+RiskRepo --> Orchestrator : current_risk_data
+deactivate RiskRepo
+
+Orchestrator -> AssessmentSvc : update_risk_assessment(risk_id, new_assessment_data)
+activate AssessmentSvc
+
+alt 風險評估更新成功
+    AssessmentSvc -> AssessmentSvc : validate_assessment_criteria()
+    AssessmentSvc -> AssessmentSvc : calculate_risk_score()
+    AssessmentSvc -> MatrixSvc : update_risk_matrix_position(risk_id, new_score)
+    activate MatrixSvc
+    MatrixSvc --> AssessmentSvc : matrix_updated
+    deactivate MatrixSvc
+    
+    AssessmentSvc -> RiskRepo : save_updated_assessment(risk_id, assessment)
+    activate RiskRepo
+    RiskRepo --> AssessmentSvc : assessment_saved
+    deactivate RiskRepo
+    
+    AssessmentSvc --> Orchestrator : assessment_updated
+    deactivate AssessmentSvc
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("risk_assessment", previous_assessment)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 風險評估更新失敗
+    AssessmentSvc --> Orchestrator : assessment_update_failed(error)
+    deactivate AssessmentSvc
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Risk assessment update failed")
+    deactivate Orchestrator
+    return
+end
+
+== 2. 風險處理措施更新 ==
+
+Orchestrator -> TreatmentSvc : update_risk_treatment(risk_id, treatment_plan)
+activate TreatmentSvc
+
+alt 處理措施更新成功
+    TreatmentSvc -> TreatmentSvc : validate_treatment_plan()
+    TreatmentSvc -> TreatmentSvc : update_mitigation_controls()
+    TreatmentSvc -> ControlSvc : update_control_framework(risk_id, controls)
+    activate ControlSvc
+    ControlSvc --> TreatmentSvc : controls_updated
+    deactivate ControlSvc
+    
+    TreatmentSvc --> Orchestrator : treatment_updated
+    deactivate TreatmentSvc
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("risk_treatment", previous_treatment)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 處理措施更新失敗
+    TreatmentSvc --> Orchestrator : treatment_update_failed(error)
+    deactivate TreatmentSvc
+    
+    Orchestrator -> RollbackHandler : initiate_rollback("treatment_update_failed")
+    activate RollbackHandler
+    RollbackHandler -> AssessmentSvc : revert_assessment(risk_id)
+    RollbackHandler -> MatrixSvc : revert_matrix_position(risk_id)
+    RollbackHandler --> Orchestrator : rollback_completed
+    deactivate RollbackHandler
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Risk treatment update failed")
+    deactivate Orchestrator
+    return
+end
+
+== 3. 合規檢查和更新 ==
+
+Orchestrator -> ComplianceSvc : check_compliance_impact(risk_id, changes)
+activate ComplianceSvc
+
+ComplianceSvc -> ComplianceSvc : evaluate_regulatory_requirements()
+ComplianceSvc -> ComplianceSvc : check_policy_alignment()
+ComplianceSvc -> ComplianceSvc : update_compliance_status()
+
+alt 合規檢查通過
+    ComplianceSvc --> Orchestrator : compliance_verified
+    deactivate ComplianceSvc
+else 合規檢查失敗
+    ComplianceSvc --> Orchestrator : compliance_violation_detected(violations)
+    deactivate ComplianceSvc
+    
+    note right of Orchestrator : 合規違規需要立即處理
+    
+    Orchestrator -> RiskNotifySvc : send_compliance_alert(risk_id, violations)
+    activate RiskNotifySvc
+    RiskNotifySvc --> Orchestrator : alert_sent
+    deactivate RiskNotifySvc
+    
+    Orchestrator -> RollbackHandler : initiate_rollback("compliance_violation")
+    activate RollbackHandler
+    RollbackHandler -> TreatmentSvc : revert_treatment(risk_id)
+    RollbackHandler -> AssessmentSvc : revert_assessment(risk_id)
+    RollbackHandler -> MatrixSvc : revert_matrix_position(risk_id)
+    RollbackHandler --> Orchestrator : rollback_completed
+    deactivate RollbackHandler
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Compliance violation detected")
+    deactivate Orchestrator
+    return
+end
+
+== 4. 影響計算和關聯更新 ==
+
+Orchestrator -> ImpactCalc : calculate_overall_impact(risk_id, changes)
+activate ImpactCalc
+
+ImpactCalc -> ImpactCalc : assess_business_impact()
+ImpactCalc -> ImpactCalc : calculate_financial_exposure()
+ImpactCalc -> ImpactCalc : evaluate_operational_impact()
+
+ImpactCalc -> RiskRepo : find_related_risks(risk_id)
+activate RiskRepo
+RiskRepo --> ImpactCalc : related_risks[]
+deactivate RiskRepo
+
+loop 對每個相關風險
+    ImpactCalc -> ImpactCalc : recalculate_related_risk_impact(related_risk_id)
+    ImpactCalc -> AssessmentSvc : update_related_risk_assessment(related_risk_id)
+    activate AssessmentSvc
+    AssessmentSvc --> ImpactCalc : related_assessment_updated
+    deactivate AssessmentSvc
+end
+
+ImpactCalc --> Orchestrator : impact_calculation_completed(impact_report)
+deactivate ImpactCalc
+
+== 5. 風險監控和告警更新 ==
+
+Orchestrator -> RiskNotifySvc : update_risk_monitoring(risk_id, new_thresholds)
+activate RiskNotifySvc
+
+RiskNotifySvc -> RiskNotifySvc : configure_alert_thresholds()
+RiskNotifySvc -> RiskNotifySvc : update_monitoring_rules()
+RiskNotifySvc -> RiskNotifySvc : schedule_periodic_reviews()
+
+RiskNotifySvc --> Orchestrator : monitoring_updated
+deactivate RiskNotifySvc
+
+== 6. 儀表板和報告更新 ==
+
+Orchestrator -> DashboardSvc : refresh_risk_dashboard(risk_id)
+activate DashboardSvc
+
+DashboardSvc -> DashboardSvc : update_risk_metrics()
+DashboardSvc -> DashboardSvc : refresh_charts_and_graphs()
+DashboardSvc -> DashboardSvc : generate_updated_reports()
+
+DashboardSvc --> Orchestrator : dashboard_refreshed
+deactivate DashboardSvc
+
+== 完成處理和通知 ==
+
+Orchestrator -> RiskNotifySvc : send_risk_update_notification(risk_id, changes_summary, impact_report)
+activate RiskNotifySvc
+
+RiskNotifySvc -> RiskNotifySvc : generate_stakeholder_notifications()
+RiskNotifySvc -> RiskNotifySvc : send_risk_owner_alert()
+RiskNotifySvc -> RiskNotifySvc : notify_compliance_team()
+RiskNotifySvc -> RiskNotifySvc : alert_management_if_high_risk()
+
+RiskNotifySvc --> Orchestrator : notifications_sent
+deactivate RiskNotifySvc
+
+Orchestrator -> AuditLog : log_completion("Risk side effects completed", risk_id)
+activate AuditLog
+AuditLog --> Orchestrator : completion_logged
+deactivate AuditLog
+
+Orchestrator -> RollbackHandler : clear_rollback_context()
+activate RollbackHandler
+RollbackHandler --> Orchestrator : context_cleared
+deactivate RollbackHandler
+
+Orchestrator --> ApprovalSvc : side_effects_completed_successfully(impact_report)
+deactivate Orchestrator
+
+note over ApprovalSvc, RollbackHandler : 風險副作用處理確保了：\n1. 風險評估的準確性\n2. 處理措施的有效性\n3. 合規要求的滿足\n4. 關聯風險的同步更新\n5. 實時監控和告警\n6. 管理儀表板的即時性
+
 @enduml

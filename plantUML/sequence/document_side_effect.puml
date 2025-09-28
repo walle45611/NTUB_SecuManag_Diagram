@@ -1,23 +1,354 @@
-@startuml
-autonumber
-actor "使用者 (Signer)" as Signer
-participant Frontend
-participant Backend
-queue RabbitMQ
-participant Worker
-database Database
-participant "物件儲存\n(MinIO)" as ObjectStore
-database "向量索引\n(pgvector)" as VectorStore
+@startuml 文件副作用處理
+title 文件副作用處理循序圖
 
-Signer -> Frontend: 核准文件變更
-Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
-Backend -> RabbitMQ: publish approval.completed.approved (document payload)
-Backend --> Frontend: 回傳成功
+participant "Approval Service" as ApprovalSvc
+participant "Document Side Effect Orchestrator" as Orchestrator
+participant "Document Repository" as DocRepo
+participant "Version Control Service" as VCS
+participant "Permission Service" as PermSvc
+participant "Document Status Service" as StatusSvc
+participant "Classification Service" as ClassSvc
+participant "File Sync Orchestrator" as SyncOrchestrator
+participant "CDN Service" as CDN
+participant "Backup Service" as BackupSvc
+participant "Search Engine" as SearchEngine
+participant "Embedding Service" as EmbeddingService
+participant "Vector Database" as VectorDB
+participant "Impact Analyzer" as ImpactAnalyzer
+participant "Notification Service" as NotifySvc
+participant "Rollback Handler" as RollbackHandler
+participant "Audit Log" as AuditLog
 
-RabbitMQ -> Worker: deliver message
-Worker -> Database: 更新文件版本與四階證明
-Worker -> ObjectStore: 取得最新文件內容
-Worker -> VectorStore: 重建文件向量索引
-Worker -> Backend: 寄送通知
-Worker -> RabbitMQ: 刪除 queue 並 ACK
+== 文件副作用處理觸發 ==
+
+ApprovalSvc -> Orchestrator : start_document_side_effects(approval_data)
+activate Orchestrator
+
+Orchestrator -> AuditLog : log_start("Document side effects processing", document_id)
+activate AuditLog
+AuditLog --> Orchestrator : logged
+deactivate AuditLog
+
+== 1. 版本控制和內容更新 ==
+
+Orchestrator -> DocRepo : get_current_document(document_id)
+activate DocRepo
+DocRepo --> Orchestrator : current_document_data
+deactivate DocRepo
+
+Orchestrator -> VCS : create_new_revision(document_id, changes)
+activate VCS
+VCS -> VCS : validate_changes()
+VCS -> VCS : create_revision_snapshot()
+VCS -> VCS : generate_revision_id()
+VCS --> Orchestrator : revision_created(revision_id)
+deactivate VCS
+
+Orchestrator -> DocRepo : update_document_content(document_id, new_content, revision_id)
+activate DocRepo
+
+alt 文件內容更新成功
+    DocRepo -> DocRepo : backup_previous_version()
+    DocRepo -> DocRepo : apply_content_changes()
+    DocRepo -> DocRepo : update_metadata()
+    DocRepo --> Orchestrator : content_updated
+    deactivate DocRepo
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("document_content", previous_content)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 文件內容更新失敗
+    DocRepo --> Orchestrator : content_update_failed(error)
+    deactivate DocRepo
+    
+    Orchestrator -> RollbackHandler : initiate_rollback("content_update_failed")
+    activate RollbackHandler
+    RollbackHandler -> VCS : delete_failed_revision(revision_id)
+    activate VCS
+    VCS --> RollbackHandler : revision_deleted
+    deactivate VCS
+    RollbackHandler --> Orchestrator : rollback_completed
+    deactivate RollbackHandler
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Document content update failed")
+    deactivate Orchestrator
+    return
+end
+
+== 2. 文件權限變更 ==
+
+Orchestrator -> PermSvc : get_current_permissions(document_id)
+activate PermSvc
+PermSvc --> Orchestrator : current_permissions
+deactivate PermSvc
+
+Orchestrator -> PermSvc : update_document_permissions(document_id, new_permissions)
+activate PermSvc
+
+alt 權限變更成功
+    PermSvc -> PermSvc : validate_permission_rules()
+    PermSvc -> PermSvc : backup_current_permissions()
+    PermSvc -> PermSvc : apply_permission_changes()
+    PermSvc --> Orchestrator : permissions_updated
+    deactivate PermSvc
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("document_permissions", previous_permissions)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 權限變更失敗
+    PermSvc --> Orchestrator : permission_update_failed(error)
+    deactivate PermSvc
+    
+    Orchestrator -> RollbackHandler : initiate_rollback("permission_update_failed")
+    activate RollbackHandler
+    RollbackHandler -> DocRepo : revert_content_changes(document_id)
+    activate DocRepo
+    DocRepo --> RollbackHandler : content_reverted
+    deactivate DocRepo
+    RollbackHandler -> VCS : delete_revision(revision_id)
+    activate VCS
+    VCS --> RollbackHandler : revision_deleted
+    deactivate VCS
+    RollbackHandler --> Orchestrator : rollback_completed
+    deactivate RollbackHandler
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Permission update failed")
+    deactivate Orchestrator
+    return
+end
+
+== 3. 文件狀態變更 ==
+
+Orchestrator -> StatusSvc : get_current_status(document_id)
+activate StatusSvc
+StatusSvc --> Orchestrator : current_status
+deactivate StatusSvc
+
+Orchestrator -> StatusSvc : update_document_status(document_id, new_status)
+activate StatusSvc
+
+alt 狀態變更成功
+    StatusSvc -> StatusSvc : validate_status_transition()
+    StatusSvc -> StatusSvc : backup_current_status()
+    StatusSvc -> StatusSvc : apply_status_change()
+    StatusSvc --> Orchestrator : status_updated
+    deactivate StatusSvc
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("document_status", previous_status)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 狀態變更失敗
+    StatusSvc --> Orchestrator : status_update_failed(error)
+    deactivate StatusSvc
+    
+    Orchestrator -> RollbackHandler : initiate_rollback("status_update_failed")
+    activate RollbackHandler
+    note right of RollbackHandler : 回滾所有已完成的變更
+    RollbackHandler -> PermSvc : revert_permissions(document_id)
+    RollbackHandler -> DocRepo : revert_content_changes(document_id)
+    RollbackHandler -> VCS : delete_revision(revision_id)
+    RollbackHandler --> Orchestrator : rollback_completed
+    deactivate RollbackHandler
+    
+    Orchestrator --> ApprovalSvc : side_effects_failed("Status update failed")
+    deactivate Orchestrator
+    return
+end
+
+== 4. 文件分類和標籤管理 ==
+
+Orchestrator -> ClassSvc : update_document_classification(document_id, new_tags, new_categories)
+activate ClassSvc
+
+alt 分類更新成功
+    ClassSvc -> ClassSvc : validate_taxonomy_rules()
+    ClassSvc -> ClassSvc : backup_current_classification()
+    ClassSvc -> ClassSvc : apply_classification_changes()
+    ClassSvc --> Orchestrator : classification_updated
+    deactivate ClassSvc
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("document_classification", previous_classification)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else 分類更新失敗
+    ClassSvc --> Orchestrator : classification_update_failed(error)
+    deactivate ClassSvc
+    
+    note right of Orchestrator : 分類失敗不中斷主流程\n但會記錄警告
+    
+    Orchestrator -> AuditLog : log_warning("Classification update failed", error)
+    activate AuditLog
+    AuditLog --> Orchestrator : warning_logged
+    deactivate AuditLog
+end
+
+== 5. 檔案系統同步 ==
+
+Orchestrator -> SyncOrchestrator : sync_document_changes(document_id, revision_id)
+activate SyncOrchestrator
+
+== 5.1 CDN 同步 ==
+SyncOrchestrator -> CDN : update_cdn_cache(document_id, new_content)
+activate CDN
+
+alt CDN 同步成功
+    CDN --> SyncOrchestrator : cdn_updated
+    deactivate CDN
+    
+    SyncOrchestrator -> RollbackHandler : register_rollback_point("cdn_sync", cdn_cache_key)
+    activate RollbackHandler
+    RollbackHandler --> SyncOrchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else CDN 同步失敗
+    CDN --> SyncOrchestrator : cdn_sync_failed(error)
+    deactivate CDN
+    
+    SyncOrchestrator -> SyncOrchestrator : retry_cdn_sync(3 times)
+    
+    alt 重試成功
+        SyncOrchestrator -> SyncOrchestrator : cdn_sync_recovered
+    else 重試失敗
+        note right of SyncOrchestrator : CDN 同步失敗不中斷主流程\n但需要告警
+        SyncOrchestrator -> NotifySvc : send_cdn_sync_alert(document_id, error)
+        activate NotifySvc
+        NotifySvc --> SyncOrchestrator : alert_sent
+        deactivate NotifySvc
+    end
+end
+
+== 5.2 備份服務同步 ==
+SyncOrchestrator -> BackupSvc : backup_document_version(document_id, revision_id)
+activate BackupSvc
+
+alt 備份成功
+    BackupSvc --> SyncOrchestrator : backup_completed
+    deactivate BackupSvc
+else 備份失敗
+    BackupSvc --> SyncOrchestrator : backup_failed(error)
+    deactivate BackupSvc
+    
+    note right of SyncOrchestrator : 備份失敗需要告警\n但不中斷主流程
+    SyncOrchestrator -> NotifySvc : send_backup_failure_alert(document_id, error)
+    activate NotifySvc
+    NotifySvc --> SyncOrchestrator : alert_sent
+    deactivate NotifySvc
+end
+
+== 5.3 搜尋引擎同步 ==
+SyncOrchestrator -> SearchEngine : update_search_index(document_id, document_content, metadata)
+activate SearchEngine
+
+alt 搜尋索引更新成功
+    SearchEngine --> SyncOrchestrator : index_updated
+    deactivate SearchEngine
+else 搜尋索引更新失敗
+    SearchEngine --> SyncOrchestrator : index_update_failed(error)
+    deactivate SearchEngine
+    
+    SyncOrchestrator -> SyncOrchestrator : retry_search_index_update(3 times)
+    
+    alt 重試成功
+        SyncOrchestrator -> SyncOrchestrator : search_index_recovered
+    else 重試失敗
+        SyncOrchestrator -> NotifySvc : send_search_index_alert(document_id, error)
+        activate NotifySvc
+        NotifySvc --> SyncOrchestrator : alert_sent
+        deactivate NotifySvc
+    end
+end
+
+SyncOrchestrator --> Orchestrator : sync_completed_with_warnings
+deactivate SyncOrchestrator
+
+== 6. Embedding 生成和向量化 ==
+
+Orchestrator -> EmbeddingService : generate_document_embedding(document_id, document_content)
+activate EmbeddingService
+
+EmbeddingService -> EmbeddingService : extract_text_content()
+EmbeddingService -> EmbeddingService : generate_vector_embedding()
+
+alt Embedding 生成成功
+    EmbeddingService -> VectorDB : store_embedding(document_id, embedding_vector)
+    activate VectorDB
+    VectorDB --> EmbeddingService : embedding_stored(vector_id)
+    deactivate VectorDB
+    
+    EmbeddingService --> Orchestrator : embedding_generated(vector_id)
+    deactivate EmbeddingService
+    
+    Orchestrator -> RollbackHandler : register_rollback_point("document_embedding", vector_id)
+    activate RollbackHandler
+    RollbackHandler --> Orchestrator : rollback_registered
+    deactivate RollbackHandler
+    
+else Embedding 生成失敗
+    EmbeddingService --> Orchestrator : embedding_generation_failed(error)
+    deactivate EmbeddingService
+    
+    note right of Orchestrator : Embedding 失敗不中斷主流程\n但會影響搜尋品質
+    
+    Orchestrator -> NotifySvc : send_embedding_failure_alert(document_id, error)
+    activate NotifySvc
+    NotifySvc --> Orchestrator : alert_sent
+    deactivate NotifySvc
+end
+
+== 7. 相關文件影響分析 ==
+
+Orchestrator -> ImpactAnalyzer : analyze_document_impact(document_id, changes)
+activate ImpactAnalyzer
+
+ImpactAnalyzer -> ImpactAnalyzer : find_related_documents()
+ImpactAnalyzer -> ImpactAnalyzer : analyze_dependency_chain()
+ImpactAnalyzer -> ImpactAnalyzer : generate_impact_report()
+
+ImpactAnalyzer --> Orchestrator : impact_analysis_completed(report)
+deactivate ImpactAnalyzer
+
+alt 發現需要同步更新的相關文件
+    loop 對每個受影響的文件
+        Orchestrator -> DocRepo : queue_related_document_update(related_document_id)
+        activate DocRepo
+        DocRepo --> Orchestrator : update_queued
+        deactivate DocRepo
+    end
+end
+
+== 完成處理和通知 ==
+
+Orchestrator -> NotifySvc : send_document_update_notification(document_id, changes_summary, impact_report)
+activate NotifySvc
+
+NotifySvc -> NotifySvc : generate_notification_content()
+NotifySvc -> NotifySvc : send_email_to_stakeholders()
+NotifySvc -> NotifySvc : send_email_to_initiator()
+
+NotifySvc --> Orchestrator : notifications_sent
+deactivate NotifySvc
+
+Orchestrator -> AuditLog : log_completion("Document side effects completed", document_id, revision_id)
+activate AuditLog
+AuditLog --> Orchestrator : completion_logged
+deactivate AuditLog
+
+Orchestrator -> RollbackHandler : clear_rollback_context()
+activate RollbackHandler
+RollbackHandler --> Orchestrator : context_cleared
+deactivate RollbackHandler
+
+Orchestrator --> ApprovalSvc : side_effects_completed_successfully(revision_id, impact_report)
+deactivate Orchestrator
+
+note over ApprovalSvc, AuditLog : 文件副作用處理確保了：\n1. 版本控制和內容一致性\n2. 權限和狀態同步\n3. 多重備份和分發\n4. 搜尋和發現能力\n5. 關聯文件影響追蹤\n6. 完整的回滾機制
+
 @enduml

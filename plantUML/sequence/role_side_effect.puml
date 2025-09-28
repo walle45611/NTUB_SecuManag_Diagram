@@ -1,20 +1,77 @@
-@startuml
-autonumber
-actor "使用者 (Signer)" as Signer
-participant Frontend
-participant Backend
-queue RabbitMQ
-participant Worker
-database Database
-participant "郵件服務" as Mail
+@startuml 權限角色副作用處理
+title 權限角色副作用處理循序圖
 
-Signer -> Frontend: 核准角色變更
-Frontend -> Backend: POST /api/approval/{approval_id}/user/{user_id}/approved
-Backend -> RabbitMQ: publish approval.completed.approved (role payload)
-Backend --> Frontend: 回傳成功
+participant "Approval Service" as ApprovalSvc
+participant "Permission Side Effect Orchestrator" as Orchestrator
+participant "Role Repository" as RoleRepo
+participant "Permission Repository" as PermRepo
+participant "User Permission Service" as UserPermSvc
+participant "Resource Access Service" as ResourceSvc
+participant "Session Manager" as SessionMgr
+participant "Cache Service" as CacheSvc
+participant "LDAP Service" as LDAP
+participant "SSO Service" as SSO
+participant "Audit Log" as AuditLog
+participant "Rollback Handler" as RollbackHandler
 
-RabbitMQ -> Worker: deliver message
-Worker -> Database: 更新角色/權限 + 四階證明
-Worker -> Mail: 寄出簽核通過通知
-Worker -> RabbitMQ: 刪除 queue 並 ACK
+== 權限角色副作用處理觸發 ==
+
+ApprovalSvc -> Orchestrator : start_permission_side_effects(approval_data)
+activate Orchestrator
+
+== 1. 角色定義更新 ==
+
+Orchestrator -> RoleRepo : update_role_definition(role_id, new_definition)
+activate RoleRepo
+alt 角色更新成功
+    RoleRepo --> Orchestrator : role_updated
+    deactivate RoleRepo
+    Orchestrator -> RollbackHandler : register_rollback_point("role_definition", previous_definition)
+else 角色更新失敗
+    RoleRepo --> Orchestrator : role_update_failed
+    deactivate RoleRepo
+    Orchestrator --> ApprovalSvc : side_effects_failed("Role update failed")
+    return
+end
+
+== 2. 權限矩陣更新 ==
+
+Orchestrator -> PermRepo : update_permission_matrix(role_id, permissions)
+activate PermRepo
+PermRepo --> Orchestrator : permissions_updated
+deactivate PermRepo
+
+== 3. 用戶權限重新計算 ==
+
+Orchestrator -> UserPermSvc : recalculate_user_permissions(affected_users[])
+activate UserPermSvc
+loop 對每個受影響用戶
+    UserPermSvc -> UserPermSvc : calculate_effective_permissions(user_id)
+    UserPermSvc -> CacheSvc : update_permission_cache(user_id)
+    UserPermSvc -> SessionMgr : invalidate_user_sessions(user_id)
+end
+UserPermSvc --> Orchestrator : user_permissions_updated
+deactivate UserPermSvc
+
+== 4. 外部系統同步 ==
+
+par LDAP 同步
+    Orchestrator -> LDAP : sync_role_permissions(role_id, permissions)
+    LDAP --> Orchestrator : ldap_synced
+and SSO 同步
+    Orchestrator -> SSO : update_role_claims(role_id, claims)
+    SSO --> Orchestrator : sso_synced
+end
+
+== 5. 資源存取控制更新 ==
+
+Orchestrator -> ResourceSvc : update_access_control_lists(role_id, resources)
+activate ResourceSvc
+ResourceSvc --> Orchestrator : access_control_updated
+deactivate ResourceSvc
+
+Orchestrator -> AuditLog : log_completion("Permission side effects completed", role_id)
+Orchestrator --> ApprovalSvc : side_effects_completed_successfully()
+deactivate Orchestrator
+
 @enduml

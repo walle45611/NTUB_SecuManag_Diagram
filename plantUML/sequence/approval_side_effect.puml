@@ -1,30 +1,73 @@
-@startuml
-skinparam ParticipantPadding 12
-skinparam BoxPadding 6
+@startuml 簽核副作用處理
+title 簽核副作用處理循序圖
 
-actor "一般使用者" as User
-participant "Frontend\nWizard" as FE
-participant "Asset API\nPOST /api/isms/asset/" as AssetAPI
-participant "AssetServiceImpl" as AssetSvc
-participant "AssetRepository" as AssetRepo
-participant "PendingOperations\nManager" as POM
-participant "Approval API\nPOST /api/system/approval/" as ApprovalAPI
-participant "ApprovalServiceImpl" as ApprovalSvc
-participant "ApprovalRepository" as ApprovalRepo
-participant "PendingApproval\nQueueManage" as PendingQM
-participant "PendingQueue\nManage" as QueueMgr
-queue "RabbitMQ\npending_approval_queue_{id}" as MQ
-participant "EmailServiceImpl" as EmailSvc
-participant "EmailAdapter" as EmailAdapter
+participant "Approval Service" as ApprovalSvc
+participant "Approval Side Effect Orchestrator" as Orchestrator
+participant "Workflow Engine" as WorkflowEngine
+participant "Template Service" as TemplateSvc
+participant "Approval History Service" as HistorySvc
+participant "Metrics Service" as MetricsSvc
+participant "Notification Service" as NotifySvc
+participant "Performance Analyzer" as PerfAnalyzer
+participant "Audit Log" as AuditLog
 
+== 簽核副作用處理觸發 ==
 
-ApprovalSvc -> PendingQM: publish_pending_approval(messages)
-PendingQM -> QueueMgr: publish_pending_queue(queue_name, messages)
-QueueMgr -> MQ: 宣告 queue + 發佈 TTL 訊息
-ApprovalSvc -> EmailSvc: send_approval_email(creator, first signer)
-EmailSvc -> EmailAdapter: send_email_async(...)
-EmailAdapter --> EmailSvc: 寄信結果
-EmailSvc --> ApprovalSvc: ok
-ApprovalSvc --> ApprovalAPI: 簽核建立成功
+ApprovalSvc -> Orchestrator : start_approval_side_effects(approval_data)
+activate Orchestrator
+
+== 1. 工作流程狀態更新 ==
+
+Orchestrator -> WorkflowEngine : update_workflow_state(workflow_id, new_state)
+activate WorkflowEngine
+WorkflowEngine -> WorkflowEngine : validate_state_transition()
+WorkflowEngine -> WorkflowEngine : update_workflow_metadata()
+WorkflowEngine --> Orchestrator : workflow_updated
+deactivate WorkflowEngine
+
+== 2. 簽核範本優化 ==
+
+Orchestrator -> TemplateSvc : analyze_approval_pattern(approval_data)
+activate TemplateSvc
+TemplateSvc -> PerfAnalyzer : analyze_bottlenecks(approval_id)
+activate PerfAnalyzer
+PerfAnalyzer --> TemplateSvc : performance_metrics
+deactivate PerfAnalyzer
+TemplateSvc -> TemplateSvc : suggest_template_improvements()
+TemplateSvc --> Orchestrator : template_analysis_completed
+deactivate TemplateSvc
+
+== 3. 歷史記錄歸檔 ==
+
+Orchestrator -> HistorySvc : archive_approval_record(approval_id)
+activate HistorySvc
+HistorySvc -> HistorySvc : create_approval_snapshot()
+HistorySvc -> HistorySvc : update_statistics()
+HistorySvc --> Orchestrator : approval_archived
+deactivate HistorySvc
+
+== 4. 性能指標更新 ==
+
+Orchestrator -> MetricsSvc : update_approval_metrics(approval_data)
+activate MetricsSvc
+MetricsSvc -> MetricsSvc : calculate_processing_time()
+MetricsSvc -> MetricsSvc : update_success_rates()
+MetricsSvc -> MetricsSvc : analyze_approval_patterns()
+MetricsSvc --> Orchestrator : metrics_updated
+deactivate MetricsSvc
+
+== 5. 後續通知處理 ==
+
+Orchestrator -> NotifySvc : send_completion_notifications(approval_id)
+activate NotifySvc
+NotifySvc -> NotifySvc : notify_initiator()
+NotifySvc -> NotifySvc : notify_stakeholders()
+NotifySvc -> NotifySvc : update_approval_dashboard()
+NotifySvc --> Orchestrator : notifications_sent
+deactivate NotifySvc
+
+Orchestrator -> AuditLog : log_completion("Approval side effects completed", approval_id)
+Orchestrator --> ApprovalSvc : side_effects_completed_successfully()
+deactivate Orchestrator
 
 @enduml
