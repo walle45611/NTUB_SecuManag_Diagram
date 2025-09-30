@@ -1,98 +1,18 @@
-@startuml 風險通知排程循序圖
+@startuml
 
-title 風險通知排程系統循序圖
+participant Scheduler
+participant Database
+participant "Email Service" as EmailService
 
-participant "Scheduler Main Process" as Main
-participant "ExpiredRiskScheduler" as ERS
-participant "ExpiredRiskService" as ERSS
-participant "RiskRepository" as RiskRepo
-participant "IsmsSettingRepository" as IsmsRepo
-participant "ExpiredRiskNotificationService" as ERNS
-participant "ExpiredRiskNotificationHandleService" as ERNHS
-participant "UserRepository" as UserRepo
-participant "AppSettingRepository" as AppRepo
-participant "EmailService" as EmailSvc
-participant "EmailAdapter" as EmailAdapter
-participant "SMTP Server" as SMTP
+note over Scheduler: 系統啟動時註冊每日 08:00 排程
+Scheduler -> Scheduler: start()
 
-note over Main, SMTP : 系統啟動與排程初始化
-
-Main -> ERS : 創建 ExpiredRiskScheduler 實例
-ERS -> ERS : configure_jobs() - 設定每日8:00執行
-Main -> ERS : start() - 啟動排程器
-
-note over Main, SMTP : 每日 8:00 (Asia/Taipei) 自動觸發
-
-ERS -> ERS : _execute_expired_risk_check()
-ERS -> ERSS : get_expired_risks()
-
-note over ERSS, IsmsRepo : 查詢未處理風險與閾值設定
-
-ERSS -> RiskRepo : get_untreated_risks()
-RiskRepo --> ERSS : 返回未處理風險清單
-ERSS -> IsmsRepo : get_risk_threshold_settings()
-IsmsRepo --> ERSS : 返回風險閾值設定
-
-note over ERSS : 風險評估與過期檢查
-
-loop 對每個未處理風險
-    ERSS -> ERSS : evaluate_expired_risk(risk, thresholds)
-    ERSS -> ERSS : 計算風險等級與過期天數
-end
-
-ERSS --> ERS : 返回過期風險清單
-
-note over ERS, EmailAdapter : 發送通知流程
-
-ERS -> ERNS : send_notification(expired_risks)
-ERNS -> ERNHS : get_expired_risk_notifications(expired_risks)
-
-note over ERNHS, AppRepo : 準備通知資料
-
-ERNHS -> IsmsRepo : get_current_risk_notification_user_by_ids()
-IsmsRepo --> ERNHS : 返回通知對象用戶ID清單
-
-loop 對每個用戶ID
-    ERNHS -> UserRepo : get_user_email_by_id(user_id)
-    UserRepo --> ERNHS : 返回用戶郵件地址
-end
-
-ERNHS -> AppRepo : get_current_app_setting()
-AppRepo --> ERNHS : 返回應用設定(郵件簽名等)
-
-loop 對每個過期風險
-    ERNHS -> ERNHS : _process_expired_risk_email_content(expired_risk)
-end
-
-ERNHS --> ERNS : 返回通知資料清單
-
-note over ERNS, SMTP : 批量發送郵件
-
-loop 對每個通知
-    loop 對每個收件者
-        ERNS -> EmailSvc : send_email(recipient, template, subject, placeholders)
-        EmailSvc -> AppRepo : get_current_app_setting()
-        AppRepo --> EmailSvc : 返回SMTP設定
-        EmailSvc -> EmailSvc : _load_email_template(template, placeholders)
-        EmailSvc -> EmailAdapter : send_email_async(smtp_config, recipient, subject, body)
-        EmailAdapter -> SMTP : 發送郵件
-        SMTP --> EmailAdapter : 郵件發送結果
-        EmailAdapter --> EmailSvc : 發送狀態
-        EmailSvc --> ERNS : 郵件發送結果
-    end
-end
-
-ERNS --> ERS : 通知發送完成
-
-note over ERS : 錯誤處理機制
-
-alt 發生錯誤
-    ERS -> ERNS : send_error_notification(error_details, function_name)
-    ERNS -> AppRepo : get_current_app_setting()
-    AppRepo --> ERNS : 返回維護人員郵件
-    ERNS -> EmailSvc : send_email(maintain_email, error_template)
-    EmailSvc -> EmailAdapter : send_email_async()
-    EmailAdapter -> SMTP : 發送錯誤通知
-end
+== 每日 08:00 ==
+Scheduler -> Database: 讀取未處理風險與通知閾值
+Database -->> Scheduler: 回傳過期風險相關資料
+Scheduler -> Database: 取得通知對象與應用設定
+Database -->> Scheduler: 回傳通知對象與應用設定資料
+Scheduler -> EmailService: 發送過期風險通知
+EmailService -->> Scheduler: 回傳發送成功狀態
 
 @enduml

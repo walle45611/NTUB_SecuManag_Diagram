@@ -1,67 +1,25 @@
-  @startuml
+@startuml
 
-  actor User as "用戶"
-  participant API as "API Router"
-  participant Signer as "ApprovalSignerService"
-  participant Domain as "Approval Domain"
-  participant SideEffect as "ApprovalSideEffectManageService"
-  participant Queue as "CompletedApprovalQueueManageService"
-  participant RabbitMQ as "RabbitMQ"
-  participant Consumer as "approval_approved_callback"
-  participant ApprovalSvc as "ApprovalService\n(RabbitMQ)"
-  participant Repo as "Repository"
-  participant Email as "NotificationService"
+participant RabbitMQ
+participant Consumer as Worker
+participant Database
+participant Notify as "Notification Service"
 
-  User -> API: POST /approval/{id}/sign\n(批准簽核)
-  API -> Signer: signed_approval(session, user_id, approval_id)
-  Signer -> Signer: _process_signer_action(\nsession, user_id, approval_id, False)
-  Signer -> Domain: get_approval_domain(\nsession, approval_id)
-  Signer -> Domain: apply_signer_action(\nuser_id, is_reject=False)
-  Domain -> Domain: approve_signer(user_id)
-  Domain -> Domain: adjust_signer_deadlines(idx)
-  Domain --> Signer: final_status (ApprovalStatus)
+note over RabbitMQ, Worker: approval.completed.* 訊息已就緒
 
-  alt final_status == pending
-      Signer -> Signer: update_approval_service.\nupdate_approval()
-  end
+RabbitMQ -> Worker: deliver message
+Worker -> Database: 更新簽核結果與關聯資料
 
-  Signer -> SideEffect: handle_side_effects(\nsession, approval_id, final_status)
-  SideEffect -> SideEffect: _prepare_serializable_approval(approval)
+alt status == approved
+    Worker -> Database: 修改對應的資料狀態以及進行文件歸檔
+    note over Database: 文件、風險、用戶、權限會再額外更新相關聯的資料狀態
+    Worker -> Notify: 發送核准通知
+else status == rejected
+    Worker -> Database: 將資料更新成拒絕狀態
+    note over Database: 用戶、權限會再額外清理多餘的相關聯資料
+    Worker -> Notify: 發送拒絕通知
+end
 
-  alt final_status == approved
-      SideEffect -> SideEffect: _handle_approved(\nsession, approval)
-      SideEffect -> Queue: publish_approved_approval(\nsession, payload)
-      Queue -> RabbitMQ: publish to\n"approval.completed.approved"
+Worker -> RabbitMQ: ack message
 
-  else final_status == rejected
-      SideEffect -> SideEffect: _handle_rejected(\nsession, approval)
-      SideEffect -> Queue: publish_rejected_approval(\nsession, payload)
-      Queue -> RabbitMQ: publish to\n"approval.completed.rejected"
-  end
-
-  == 非同步處理階段 ==
-
-  RabbitMQ --> Consumer: consume message from\n"approval.completed.approved"
-  Consumer -> ApprovalSvc: handle_side_effects(\napproval, "approved", loop)
-  ApprovalSvc -> ApprovalSvc: _validate_approval(approval)
-  ApprovalSvc -> ApprovalSvc: _process_signers_for_approval(\napproval, status)
-  ApprovalSvc -> ApprovalSvc: _handle_approval_side_effects()
-
-  alt status == approved
-      ApprovalSvc -> Repo: handle_approved(\napproval, creator_id, signers, status)      
-      alt related_object_category == "risk"
-          ApprovalSvc -> ApprovalSvc: _risk_tracking_logic_service.\nhandle_tracking_after_approval()
-      end
-
-      ApprovalSvc -> ApprovalSvc: _document_service.\narchive_document()
-
-  else status == rejected
-      ApprovalSvc -> Repo: handle_rejected(\napproval, creator_id, signers, status)
-  end
-
-  Consumer -> Email: approved_success_notify(\nemail, approval_id)
-  Consumer -> Consumer: queue_service.delete_queue(\napproval_id, loop)
-  Consumer -> RabbitMQ: ch.basic_ack(delivery_tag)
-  API --> User: HTTP 200 OK
-
-  @enduml
+@enduml
