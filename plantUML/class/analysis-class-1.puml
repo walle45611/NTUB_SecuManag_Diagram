@@ -97,6 +97,12 @@ package "System" {
   class AppSetting {
     +key_settings
   }
+  class ApprovalTemplate {
+    +name
+    +template
+  }
+
+  AppSetting -- ApprovalTemplate : templates
 }
 
 ' ====== 虛擬概念收斂 ======
