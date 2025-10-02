@@ -1,56 +1,30 @@
 @startuml
 
 actor User as "使用者"
-participant Router as "API 路由器"
-participant RiskService as "風險服務"
-participant Approval as "簽核系統"
-participant TrackSvc as "風險追蹤服務"
-participant QueueSvc as "佇列管理"
+participant Frontend
+participant Backend
+participant Database
+participant Email
 participant Queue as "RabbitMQ"
-participant ExpiredSvc as "到期處理服務"
-participant Notify as "通知服務"
-participant Email as "郵件服務"
-database Database
+participant "工作派工模組" as WorkAssignmentModule
 
 == 設定追蹤 ==
-User -> Router: PUT /risk/{id}/treatment
-Router -> RiskService: 更新追蹤設定
-RiskService -> Database: 寫入追蹤參數
-RiskService -> TrackSvc: publish_tracking_update()
+User -> Frontend: 勾選風險追蹤並填寫工作派工表單
+Frontend -> Backend: PUT /api/isms/risk/{risk-id}/treatment
+Backend -> Backend: publish_update_event(風險暫存資料)
+Frontend -> Backend: POST /api/system/work-assignment/
+Backend -> Backend: consume_event_and_get_domain(風險暫存資料)
+Backend -> Database: 更新風險追蹤狀態
+Backend -> WorkAssignmentModule: 建立派工資料
+Backend -> Frontend: 回傳更新成功狀態
+Frontend -> User: 顯示更新成功訊息
+WorkAssignmentModule -> Database: 工作派工完成時，更新風險追蹤狀態
 
-== 簽核後觸發 ==
-Approval -> TrackSvc: handle_tracking_after_approval(risk)
-TrackSvc -> Database: 讀取最新風險資料
-
-alt risk 可追蹤
-    TrackSvc -> QueueSvc: 更新追蹤佇列
-    QueueSvc -> Queue: 建立或刷新 pending_risk_track_queue_{id}
-else risk 不可追蹤
-    TrackSvc -> QueueSvc: 刪除追蹤佇列
-    QueueSvc -> Queue: 停用追蹤隊列
-end
-
-== 追蹤提醒 ==
-Queue -> ExpiredSvc: TTL 到期訊息
-ExpiredSvc -> Database: 查詢風險與通知對象
-ExpiredSvc -> Notify: send_tracking_notifications()
-Notify -> Email: 發送追蹤提醒
-Email -> User: 追蹤提醒郵件
-
-alt 需持續追蹤
-    ExpiredSvc -> QueueSvc: 重新排程下一輪追蹤
-    QueueSvc -> Queue: 刷新追蹤佇列 TTL
-end
-
-== 失敗處理 ==
-Queue -> Notify: dead-letter 事件
-Notify -> Email: 發送技術維護/失敗通知
-
-== 查詢追蹤狀態 ==
-User -> Router: GET /risk/{id}
-Router -> RiskService: get_risk()
-RiskService -> Database: 讀取風險與追蹤狀態
-RiskService --> Router: 風險詳細資料
-Router --> User: 回傳追蹤資訊
+== 風險追蹤到期提醒 ==
+Queue -> Queue: TTL 到期訊息
+Queue -> Database: 查詢風險與通知對象
+Queue -> Email: 發送風險追蹤到期通知
+Email -> User: 發送追蹤提醒郵件
+Queue -> Queue: 刷新追蹤佇列 TTL
 
 @enduml

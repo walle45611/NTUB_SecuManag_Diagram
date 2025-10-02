@@ -7,7 +7,7 @@ participant "PendingOperations\nManager" as POM
 participant "Approval API" as ApprovalAPI
 participant "RabbitMQ" as MQ
 participant "Approval Worker" as Worker
-database Database
+participant Database
 
 User -> Frontend: 送出威脅/弱點資料
 Frontend -> DomainAPI: POST /api/isms/(threat|vulnerability)/

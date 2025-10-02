@@ -1,47 +1,44 @@
 @startuml
 
 actor User as "使用者"
-participant Router as "API 路由器"
-participant WorkService as "Work Assignment Service"
-participant Processor as "Processor Service"
-participant QueueSvc as "Queue Service"
+participant Frontend
+participant Backend
+participant Database
 participant Queue as "RabbitMQ"
-participant Email as "Email Service"
-database Database
+participant Email
+actor User2 as "處理者"
 
-== 建立派工 ==
-User -> Router: POST /work-assignment/
-Router -> WorkService: 建立派工草稿
-WorkService -> Database: 驗證並寫入派工資料
-WorkService -> Processor: publish_queue_and_notify()
-Processor -> QueueSvc: 建立待處理佇列
-QueueSvc -> Queue: 發布派工任務
-Processor -> Email: 發送第一位處理者通知
-Router <- Processor: 回傳成功
-Router -> User: 建立成功
+== 建立派工==
+User -> Frontend: 建立派工請求
+Frontend -> Backend: POST /work-assignment/
+Backend -> Database: 儲存派工資料
+Backend -> Queue: 建立派工佇列
+Backend -> Email: 發送通知處理者
+Email -> User2: 發送通知郵件
 
 == 完成工作 ==
-User -> Router: POST /work-assignment/complete
-Router -> Processor: 完成當前派工
-Processor -> Database: 驗證並更新派工狀態
+User2 -> Backend: POST /work-assignment/complete
+Backend -> Database: 驗證並更新派工狀態
 
 alt 還有下一位處理者
-    Processor -> QueueSvc: 更新派工佇列
-    QueueSvc -> Queue: 發布下一位派工
-    Processor -> Email: 通知下一位處理者
-else 派工全部完成
-    Processor -> QueueSvc: 刪除派工佇列
-    QueueSvc -> Queue: 清理佇列項目
+    Backend -> Queue: 更新派工佇列
+    Backend -> Email: 發送通知下一位處理者
+    Email -> User2: 發送通知郵件
 end
-
-Processor -> Router: 回傳成功
-Router -> User: 完成回應
+Backend -> Queue: 移除派工佇列
+Backend -> Email: 發送通知使用者工作完成
+Email -> User: 發送完成通知郵件
 
 == 查詢待辦 ==
-User -> Router: GET /work-assignment/personal-pending
-Router -> Processor: 取得個人待辦
-Processor -> Database: 讀取待處理派工
-Processor --> Router: 個人待辦清單
-Router --> User: 回傳結果
+User2 -> Frontend: 查詢個人待辦
+Frontend -> Backend: GET /work-assignment/personal-pending
+Backend -> Database: 取得個人待辦
+Backend -> Database: 讀取待處理派工
+Backend --> Frontend: 回傳待辦列表
+Frontend --> User2: 顯示結果
 
 @enduml
+
+
+## TODO 工作派工逾時循序圖
+基本上跟 approval 超時沒有簽核差不多

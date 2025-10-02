@@ -2,7 +2,7 @@
 
 participant Scheduler
 participant Database
-participant "Email Service" as EmailService
+participant EmailService
 
 note over Scheduler: 系統啟動時註冊每日 08:00 排程
 Scheduler -> Scheduler: start()
