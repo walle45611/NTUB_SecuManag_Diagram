@@ -36,6 +36,13 @@ package "System" {
     + is_current : boolean
     + parent_id : UUID
   }
+
+  class ApprovalTemplate {
+    + id : UUID
+    + name : String
+    + app_setting_id : UUID
+    + template : JSONB
+  }
 }
 
 ' ====== ISMS / Risk Domain ======
@@ -237,6 +244,8 @@ LowRiskSetting --> "1..1" IsmsSetting : isms_setting
 Asset --> "0..1" Asset : children
 Asset o-- "*..1" AssetCategory : asset_category
 Asset --> "1..1" Approval : approvals
+
+AppSetting --> "1..*" ApprovalTemplate : templates
 
 Risk --> "0..1" Risk : children
 Risk --> "1..1" Asset : asset

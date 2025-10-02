@@ -49,6 +49,17 @@ entity "app_setting" as APS {
 }
 APS ||--o{ APV : approvals
 
+entity "approval_template" as APT {
+    template            : jsonb    {not null}
+    name                : string   {not null}
+    --
+    id                  : UUID     <<PK>>  {not null, default: uuid_generate_v4()}
+    app_setting_id      : UUID     <<FK>>  {not null, references app_setting(id), on delete: CASCADE}
+}
+
+' 關聯：一個 AppSetting 可以有多個 ApprovalTemplate
+APS ||--o{ APT : templates
+
 entity "announcement" as ANN {
     date              : datetime  {not null}
     title             : string    {not null}
