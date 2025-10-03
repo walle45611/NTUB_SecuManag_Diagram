@@ -11,15 +11,12 @@ actor ReviewerB as "核准者B"
 == 核准操作階段 ==
 ReviewerA ->> Frontend: 點選「通過」
 activate Frontend
-
 Frontend ->> Backend: POST /api/system/approval/{approval_id}/user/{user_id}/approved
 activate Backend
-
 Backend ->> Database: 驗證簽核請求狀態
 activate Database
 Database -->> Backend: 返回驗證結果
 deactivate Database
-
 Backend ->> Database: 更新核准狀態與簽核人資訊
 activate Database
 
