@@ -1,0 +1,14 @@
+@startuml
+skinparam ParticipantPadding 12
+skinparam BoxPadding 6
+
+actor User as "一般使用者"
+participant Frontend
+participant Backend
+
+User -> Frontend: 修改、新增或刪除資料
+Frontend -> Backend: POST /api/{module}/{domain}
+Backend -> Backend: publish_create_event(暫存 domain 物件含版本資料)
+Backend --> Frontend: 成功回應 (僅暫存事件)
+
+@enduml

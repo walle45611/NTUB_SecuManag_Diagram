@@ -1,12 +1,11 @@
 @startuml
 
-title 核准允許流程 (Approval Allow Process)
-
 actor ReviewerA as "核准者A"
-participant Frontend as "前端介面"
-participant Backend as "後端服務"
-participant Database as "資料庫"
-participant NotificationService as "通知服務"
+actor Requester as "申請者"
+participant Frontend
+participant Backend
+participant Database
+participant RabbitMQ
 actor ReviewerB as "核准者B"
 
 == 核准操作階段 ==
@@ -30,23 +29,15 @@ Database -->> Backend: 返回待審核者列表
 
 alt 還有下一位審核者
     deactivate Database
-    Backend ->> NotificationService: 發布核准通知到佇列
-    activate NotificationService
-    NotificationService -->> ReviewerB: 通知下一位審核者
-    deactivate NotificationService
-
+    Backend ->> RabbitMQ: 發布簽核到佇列
+    Backend ->> ReviewerB: 通知下一位審核者
     Backend -->> Frontend: 成功回應 {"success": true, "message": "簽核確認成功"}
     Frontend -->> ReviewerA: 彈出綠色成功 alert「簽核確認成功」
 
 else 全部審核完成
     Backend ->> Database: 更新請求狀態為已核准
     deactivate Database
-
-    Backend ->> NotificationService: 發布核准完成通知到佇列
-    activate NotificationService
-    NotificationService -->> ReviewerA: 通知申請者簽核通過
-    deactivate NotificationService
-
+    Backend -->> Requester: 通知申請者簽核通過
     Backend -->> Frontend: 成功回應 {"success": true, "message": "簽核確認成功"}
     Frontend -->> ReviewerA: 彈出綠色成功 alert「簽核確認成功」
 end

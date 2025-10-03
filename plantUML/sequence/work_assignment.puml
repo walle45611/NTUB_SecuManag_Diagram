@@ -38,7 +38,3 @@ Backend --> Frontend: 回傳待辦列表
 Frontend --> User2: 顯示結果
 
 @enduml
-
-
-## TODO 工作派工逾時循序圖
-基本上跟 approval 超時沒有簽核差不多

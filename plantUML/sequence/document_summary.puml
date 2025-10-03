@@ -5,13 +5,6 @@ participant "Document API" as DocumentAPI
 participant "向量索引 (pgvector)" as VectorStore
 participant "Ollama 模型" as LLM
 
-User ->> Frontend: 進入文件頁面
-Frontend ->> DocumentAPI: GET /api/system/document/
-DocumentAPI ->> VectorStore: 查詢已歸檔文件列表
-VectorStore -->> DocumentAPI: 回傳文件資訊
-DocumentAPI -->> Frontend: 回傳文件列表
-Frontend -->> User: 顯示文件清單
-
 User ->> Frontend: 點擊「AI 文件摘要」
 Frontend ->> DocumentAPI: GET /api/system/document/summarize/{document_id}
 DocumentAPI ->> VectorStore: as_retriever(filter doc_id)
