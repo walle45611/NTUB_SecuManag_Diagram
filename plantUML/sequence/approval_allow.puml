@@ -1,23 +1,45 @@
 @startuml
 
 actor ReviewerA as "核准者A"
+actor Requester as "申請者"
 participant Frontend
 participant Backend
 participant Database
+participant RabbitMQ
 actor ReviewerB as "核准者B"
 
+== 核准操作階段 ==
 ReviewerA ->> Frontend: 點選「通過」
+activate Frontend
 Frontend ->> Backend: POST /api/system/approval/{approval_id}/user/{user_id}/approved
-Backend ->> Database: UPDATE approval_record SET status='approved', signer='[{"id": "A", "name": "ReviewerA"},'
+activate Backend
+Backend ->> Database: 驗證簽核請求狀態
+activate Database
+Database -->> Backend: 返回驗證結果
+deactivate Database
+Backend ->> Database: 更新核准狀態與簽核人資訊
+activate Database
+
+== 判斷後續流程 ==
+Backend ->> Database: 查詢是否還有待審核者
+Database -->> Backend: 返回待審核者列表
 
 alt 還有下一位審核者
-    Backend ->> ReviewerB: 發送通知給 ReviewerB
+    deactivate Database
+    Backend ->> RabbitMQ: 發布簽核到佇列
+    Backend ->> ReviewerB: 通知下一位審核者
+    Backend -->> Frontend: 成功回應 {"success": true, "message": "簽核確認成功"}
+    Frontend -->> ReviewerA: 彈出綠色成功 alert「簽核確認成功」
+
 else 全部審核完成
-    Backend ->> Database: UPDATE approval_request SET status='approved'
-    Backend ->> AI :將相關資料給 AI 模組
-    AI ->> Backend : 回傳相關數值回後端處理
-    Backend ->> Database: 核准過後將核准的相關文件歸檔且向量化儲存到資料庫
-    Backend ->> Backend: 執行後續業務邏輯 (重新計算風險數值、調整使用者權限)
-    Backend ->> Database: 結束後續業務邏輯儲存到資料庫
+    Backend ->> Database: 更新請求狀態為已核准
+    deactivate Database
+    Backend -->> Requester: 通知申請者簽核通過
+    Backend -->> Frontend: 成功回應 {"success": true, "message": "簽核確認成功"}
+    Frontend -->> ReviewerA: 彈出綠色成功 alert「簽核確認成功」
 end
+
+deactivate Backend
+deactivate Frontend
+
 @enduml

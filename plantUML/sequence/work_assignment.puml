@@ -1,0 +1,40 @@
+@startuml
+
+actor User as "使用者"
+participant Frontend
+participant Backend
+participant Database
+participant Queue as "RabbitMQ"
+participant Email
+actor User2 as "處理者"
+
+== 建立派工==
+User -> Frontend: 建立派工請求
+Frontend -> Backend: POST /work-assignment/
+Backend -> Database: 儲存派工資料
+Backend -> Queue: 建立派工佇列
+Backend -> Email: 發送通知處理者
+Email -> User2: 發送通知郵件
+
+== 完成工作 ==
+User2 -> Backend: POST /work-assignment/complete
+Backend -> Database: 驗證並更新派工狀態
+
+alt 還有下一位處理者
+    Backend -> Queue: 更新派工佇列
+    Backend -> Email: 發送通知下一位處理者
+    Email -> User2: 發送通知郵件
+end
+Backend -> Queue: 移除派工佇列
+Backend -> Email: 發送通知使用者工作完成
+Email -> User: 發送完成通知郵件
+
+== 查詢待辦 ==
+User2 -> Frontend: 查詢個人待辦
+Frontend -> Backend: GET /work-assignment/personal-pending
+Backend -> Database: 取得個人待辦
+Backend -> Database: 讀取待處理派工
+Backend --> Frontend: 回傳待辦列表
+Frontend --> User2: 顯示結果
+
+@enduml

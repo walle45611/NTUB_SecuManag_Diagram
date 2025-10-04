@@ -10,9 +10,11 @@ actor ReviewerB as "上級核准者"
 
 User ->> Frontend: 新增核准請求
 Frontend ->> Backend: POST /api/system/approval/
+Backend ->> Backend: 尋找暫存 Domain 物件 (如：資產、風險 ...)
+Backend ->> Database: INSERT INTO domain_object ... (含紀錄版本資料)
 Backend ->> Database: INSERT INTO approval_request ...
 Backend ->> RabbitMQ: 推送至 Approve Queue (TTL & DLX 設定)
-Backend ->> ReviewerA: 發送核准通知
+Backend ->> ReviewerA: 發送簽核通知
 
 alt 訊息逾時未處理
     Consumer ->> RabbitMQ: 從 DLQ 拉取訊息

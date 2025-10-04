@@ -1,0 +1,25 @@
+@startuml
+
+participant RabbitMQ
+participant Consumer as Worker
+participant Database
+participant Notify as "Notification Service"
+
+note over RabbitMQ, Worker: approval.completed.* 訊息已就緒
+
+RabbitMQ -> Worker: deliver message
+Worker -> Database: 更新簽核結果與關聯資料
+
+alt status == approved
+    Worker -> Database: 修改對應的資料狀態以及進行文件歸檔
+    note over Database: 文件、風險、用戶、權限會再額外更新相關聯的資料狀態
+    Worker -> Notify: 發送核准通知
+else status == rejected
+    Worker -> Database: 將資料更新成拒絕狀態
+    note over Database: 用戶、權限會再額外清理多餘的相關聯資料
+    Worker -> Notify: 發送拒絕通知
+end
+
+Worker -> RabbitMQ: ack message
+
+@enduml

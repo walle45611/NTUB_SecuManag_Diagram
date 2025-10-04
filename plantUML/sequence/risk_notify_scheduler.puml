@@ -1,0 +1,18 @@
+@startuml
+
+participant Scheduler
+participant Database
+participant EmailService
+
+note over Scheduler: 系統啟動時註冊每日 08:00 排程
+Scheduler -> Scheduler: start()
+
+== 每日 08:00 ==
+Scheduler -> Database: 讀取未處理風險與通知閾值
+Database -->> Scheduler: 回傳過期風險相關資料
+Scheduler -> Database: 取得通知對象與應用設定
+Database -->> Scheduler: 回傳通知對象與應用設定資料
+Scheduler -> EmailService: 發送過期風險通知
+EmailService -->> Scheduler: 回傳發送成功狀態
+
+@enduml

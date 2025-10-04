@@ -1,0 +1,21 @@
+@startuml
+
+participant "main.py" as Main
+participant "排程子行程" as Proc
+participant "BaseScheduler" as Scheduler
+participant "AsyncIOScheduler" as APS
+participant "Job Handler" as JobHandler
+
+Main -> Proc : 為每個排程類別建立子行程\n並建立事件迴圈
+Proc -> Scheduler : 建立排程器實例\n呼叫 run()
+Scheduler -> APS : configure_jobs()\n(註冊 Cron/Interval 任務)
+Scheduler -> APS : start()
+APS -> Scheduler : 排程到時觸發
+
+Scheduler -> JobHandler : 執行共用 entry point\n(協程 / 可 await)
+JobHandler -> JobHandler : 執行排程專屬業務邏輯\n(查詢、計算、呼叫其他服務等)
+JobHandler --> Scheduler : 回報結果或例外
+Scheduler -> Scheduler : 記錄執行狀態、處理例外
+Scheduler --> APS : 等待下一次觸發
+
+@enduml

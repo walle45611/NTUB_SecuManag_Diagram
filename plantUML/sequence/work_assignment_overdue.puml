@@ -1,0 +1,30 @@
+@startuml
+
+actor Creator as "派工人員"
+actor Processor as "處理者"
+participant WorkAssignmentModule as "工作派工模組"
+participant Database
+participant RabbitMQ
+participant Consumer as "逾時處理 Consumer"
+participant Email
+actor Maintenancer as "技術維護員"
+
+== TTL 到期觸發逾時處理 ==
+Creator -> WorkAssignmentModule: 建立派工
+WorkAssignmentModule -> RabbitMQ: 派工發布
+Consumer -> RabbitMQ: 接收逾期的派工訊息
+RabbitMQ -> Email: 發送逾期通知
+Email -> Processor: 任務逾時提醒
+Email -> Creator: 派工逾時提醒
+Consumer -> RabbitMQ: 重新發布派工佇列
+
+== 異常 ==
+alt 暫時性錯誤
+    Consumer -> RabbitMQ: 重新嘗試發布至五次
+else 重試達上限或永久性錯誤
+    Consumer -> Email: 發送技術維護通知
+    Email -> Maintenancer: 技術維護提醒
+    Email -> Creator: 派工逾時處理失敗提醒
+end
+
+@enduml

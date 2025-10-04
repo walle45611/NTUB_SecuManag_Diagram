@@ -1,0 +1,30 @@
+@startuml
+
+actor User as "使用者"
+participant Frontend
+participant Backend
+participant Database
+participant Email
+participant Queue as "RabbitMQ"
+participant "工作派工模組" as WorkAssignmentModule
+
+== 設定追蹤 ==
+User -> Frontend: 勾選風險追蹤並填寫工作派工表單
+Frontend -> Backend: PUT /api/isms/risk/{risk-id}/treatment
+Backend -> Backend: publish_update_event(風險暫存資料)
+Frontend -> Backend: POST /api/system/work-assignment/
+Backend -> Backend: consume_event_and_get_domain(風險暫存資料)
+Backend -> Database: 更新風險追蹤狀態
+Backend -> WorkAssignmentModule: 建立派工資料
+Backend -> Frontend: 回傳更新成功狀態
+Frontend -> User: 顯示更新成功訊息
+WorkAssignmentModule -> Database: 工作派工完成時，更新風險追蹤狀態
+
+== 風險追蹤到期提醒 ==
+Queue -> Queue: TTL 到期訊息
+Queue -> Database: 查詢風險與通知對象
+Queue -> Email: 發送風險追蹤到期通知
+Email -> User: 發送追蹤提醒郵件
+Queue -> Queue: 刷新追蹤佇列 TTL
+
+@enduml
