@@ -21,7 +21,7 @@ Frontend -> User: 顯示更新成功訊息
 WorkAssignmentModule -> Database: 工作派工完成時，更新風險追蹤狀態
 
 == 風險追蹤到期提醒 ==
-Queue -> Queue: TTL 到期訊息
+Queue -> Queue: 監測到期訊息
 Queue -> Database: 查詢風險與通知對象
 Queue -> Email: 發送風險追蹤到期通知
 Email -> User: 發送追蹤提醒郵件
