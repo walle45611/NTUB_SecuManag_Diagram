@@ -18,6 +18,7 @@ entity "risk" as RSK {
     asset_id                : UUID       <<FK>> {not null, references asset(id)}
     threat_id               : UUID       <<FK>> {not null, references threat(id)}
     vulnerability_id        : UUID       <<FK>> {not null, references vulnerability(id)}
+    creator_id              : UUID       <<FK>> {not null, references user(id)}
     parent_id               : UUID       <<FK>> {references risk(id)}
 }
 RSK ||--o{ RSK : children
@@ -67,6 +68,24 @@ entity "vulnerability" as VUL {
 }
 VUL ||--o{ VUL : children
 VUL ||--o{ RSK : risk
+
+entity "user" as USR {
+    account               : string    {not null}
+    username              : string    {not null}
+    session_start_time    : datetime  {nullable}
+    session_end_time      : datetime  {nullable}
+    is_active             : bool      {not null, default: true}
+    is_temp               : bool      {not null, default: false}
+    created_time          : datetime  {not null, default: now() }
+    version_group_id      : string    {not null}
+    is_current            : bool      {not null, default: false}
+    --
+    id                    : UUID      <<PK>>  {not null, default: uuid_generate_v4()}
+    role_id               : UUID      <<FK>>  {not null, references role(id)}
+    parent_id             : UUID      <<FK>>  {references user(id)}
+}
+USR ||--o{ USR : children
+USR ||--o{ RSK : risk
 
 entity "risk_control" as RSC {
     name                    : string     {not null}

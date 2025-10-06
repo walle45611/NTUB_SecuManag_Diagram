@@ -45,6 +45,24 @@ package "System" {
   }
 }
 
+' ====== People & Auth ======
+package "People & Auth" {
+  class User {
+    + id : UUID
+    + account : String
+    + username : String
+    + session_start_time : DateTime
+    + session_end_time : DateTime
+    + is_active : Boolean
+    + is_temp : boolean
+    + created_time : Datetime
+    + version_group_id : varchar
+    + is_current : boolean
+    + parent_id : UUID
+    + validate_deletion(has_related_data : boolean) : void
+  }
+}
+
 ' ====== ISMS / Risk Domain ======
 package "ISMS / Risk Domain" {
   class IsmsSetting {
@@ -129,6 +147,7 @@ package "ISMS / Risk Domain" {
     + asset_id : UUID
     + threat_id : UUID
     + vulnerability_id : UUID
+    + creator_id : UUID
     + created_time : Datetime
     + version_group_id : varchar
     + is_current : boolean
@@ -248,6 +267,7 @@ Asset --> "1..1" Approval : approvals
 AppSetting --> "1..*" ApprovalTemplate : templates
 
 Risk --> "0..1" Risk : children
+Risk --> "1..*" User : creator
 Risk --> "1..1" Asset : asset
 Risk --> "1..1" Threat : threat
 Risk --> "1..1" Vulnerability : vulnerability

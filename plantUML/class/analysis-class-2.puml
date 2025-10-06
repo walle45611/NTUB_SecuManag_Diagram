@@ -2,6 +2,16 @@
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
 
+' ====== 人員與權限 ======
+package "People & Auth" {
+  class User {
+    +account
+    +username
+    +is_active
+    +is_temp
+  }
+}
+
 ' ====== ISMS / 風險領域 ======
 package "ISMS / Risk Domain" {
   class AssetCategory {
@@ -70,6 +80,7 @@ package "ISMS / Risk Domain" {
   Asset -- AssetCategory : asset_category
 
   ' 風險關聯
+  Risk -- User : creator
   Risk -- Asset : asset
   Risk -- Threat : threat
   Risk -- Vulnerability : vulnerability

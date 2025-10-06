@@ -46,6 +46,7 @@ entity "risk" as RSK {
     asset_id                : UUID       <<FK>> {not null, references asset(id)}
     threat_id               : UUID       <<FK>> {not null, references threat(id)}
     vulnerability_id        : UUID       <<FK>> {not null, references vulnerability(id)}
+    creator_id              : UUID       <<FK>> {not null, references user(id)}
     parent_id               : UUID       <<FK>> {references risk(id)}
 }
 RSK ||--o{ RSK : children
