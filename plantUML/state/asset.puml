@@ -21,11 +21,11 @@ state "啟用中(Active)" as Active <<active>> {
   [*] --> InUse
   state InUse as "使用中"
 
-  InUse --> Editing : 編輯資產資料\nPUT /api/isms/asset/{id}
+  InUse --> Editing : 編輯資產資料\nPOST /api/isms/asset/update-asset/
   state Editing as "編輯中"
-  Editing --> InUse : 儲存成功
+  Editing --> InUse : 發送核准請求，並回到待核准狀態
 }
 
-Active --> Archived : 停用設定並將文件封存
-state "已封存(Archived)" as Archived <<terminal>>
+Active --> deleted : 刪除上版的 embedding 文件，並將當前的 embedding 文件進行封存
+state "已封存(Archived)" as deleted <<terminal>>
 @enduml

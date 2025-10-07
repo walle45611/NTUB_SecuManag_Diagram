@@ -14,24 +14,22 @@ state "被退回\n(Rejected)" as Rejected <<error>>
 Rejected --> Draft : 編輯後重新送審
 
 state "已核准\n(Approved)" as Approved <<approval>>
-Approved --> Calculating : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ INSERT INTO risk\n→ 取得 Asset Setting
-state "計算中\n(Calculating)" as Calculating <<calc>>
+Approved --> Active : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ INSERT INTO risk\n→ 取得 ISMS Setting\n→觸發 Stored Procedure 重算風險
 
-Calculating --> Active : Service 套公式計算完成\n→ 儲存 Risk Result
 state "已生效\n(Active)" as Active <<active>> {
   [*] --> InUse
   state "使用中\n(In-Use)" as InUse
 
-  InUse --> Displaying : GET /api/isms/risk/{asset_id}/force-directed
-  state "顯示中\n(Displaying)" as Displaying <<display>>
-  Displaying --> InUse : 關閉視圖
+  InUse --> Displaying : GET /api/isms/risk/{asset_id}/update-risk/
+  state "編輯中\n(Displaying)" as Displaying <<display>>
+  Displaying --> InUse : 發送核准請求，並回到待核准狀態
 
   InUse --> Tracking : PUT /api/isms/risk/{risk-id}/treatment\n→ publish_update_event(風險暫存資料)\nPOST /api/system/work-assignment/\n→ 建立派工資料
   state "追蹤中\n(Tracking)" as Tracking
   Tracking --> InUse : 工作派工完成
 }
 
-Active --> Archived : 封存文件
+Active --> Archived : 刪除上版的 embedding 文件，並將當前的 embedding 文件進行封存
 state "已封存\n(Archived)" as Archived <<terminal>>
 
 @enduml

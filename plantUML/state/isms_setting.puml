@@ -2,7 +2,7 @@
 
 hide empty description
 
-[*] --> Draft : 使用者點擊「編輯資產設定」\nGET /api/isms/isms-setting/
+[*] --> Draft : 使用者點擊「編輯 ISMS 設定」\nGET /api/isms/isms-setting/
 state "草稿\n(Draft)" as Draft <<draft>>
 
 Draft --> PendingApproval : 保存設定\nPOST /api/isms/isms-setting/\n→ 暫存 domain 物件含版本資料\n→ publish_create_event
@@ -20,12 +20,12 @@ state "啟用中\n(Active)" as Active <<active>> {
   state "使用中\n(In-Use)"        as InUse
   state "風險計算中\n(Recalculating)" as Recalculating
 
-  InUse --> Recalculating : Backend 觸發風險計算
-  Recalculating --> InUse : Service 計算完成
+  InUse --> Recalculating : 編輯 ISMS-Setting 資料\nPOST /api/isms/isms-setting/update-isms-setting/
+  Recalculating --> InUse : 發送核准請求，並回到待核准狀態
 }
 
-Approved --> Active : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ UPDATE isms_setting\n→ 觸發 Service 重算風險
+Approved --> Active : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ UPDATE isms_setting\n→ 觸發 Stored Procedure 重算風險
 
-Active --> Archived : 停用設定並將文件封存
+Active --> Archived : 刪除上版的 embedding 文件，並將當前的 embedding 文件進行封存
 state "已封存\n(Archived)" as Archived <<terminal>>
 @enduml

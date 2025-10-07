@@ -5,10 +5,10 @@ hide empty description
 [*] --> Draft : 使用者「新增／修改物件」
 state "草稿\n(Draft)" as Draft <<draft>>
 
-Draft --> PendingApproval : 送出新增/修改物件\nPOST /api/{module}/{domain}\n→ 暫存 domain 物件含版本資料\n→ publish_create_event
+Draft --> PendingApproval : 送出新增/修改物件\nPOST /api/{module}/{domain}\n→ 暫存 domain 物件含 parent id\n→ publish_create_event
 state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
 
-PendingApproval --> Current  : approval_completed\n→ Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ INSERT/UPDATE {domain}
+PendingApproval --> Current  : approval_completed\n→ Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n
 PendingApproval --> Rejected : approval_rejected\n→ Worker 清理相關聯資料
 state "被退回\n(Rejected)" as Rejected <<error>>
 Rejected --> Draft : 使用者再次編輯後\n重新送審
@@ -21,7 +21,7 @@ state "目前版本\n(Current)" as Current <<current>> {
   end note
 }
 
-Current --> Superseded : 新版本核准成功\n→ 舊版本狀態更新為 Superseded
+Current --> Superseded : 新版本核准成功\n→ 舊版本狀態更新 is_current = false
 state "已取代\n(Superseded)" as Superseded <<terminal>>
 
 @enduml
