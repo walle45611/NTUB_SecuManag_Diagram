@@ -1,0 +1,37 @@
+@startuml work_assignment_overview
+
+left to right direction
+
+actor 使用者
+
+package "工作派工" {
+    usecase "檢查權限" as UC01
+    usecase "顯示派工清單" as UC02
+    usecase "檢視欄位（派工名稱、建立人員、關聯類別/ID、建立時間、操作）" as UC03
+    usecase "檢視派工詳情與進度" as UC04
+    usecase "選擇每頁顯示筆數" as UC05
+    usecase "搜尋派工資料" as UC06
+    usecase "新增派工" as UC07
+    usecase "編輯派工紀錄" as UC08
+    usecase "刪除派工（確認對話框）" as UC09
+    usecase "設定派工人員與截止時間" as UC10
+    usecase "檢視處理人員狀態與附件" as UC11
+    usecase "寫入建立時間" as UC12
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC01 .down.> UC07 : <<include>>
+UC01 .down.> UC08 : <<include>>
+UC01 .down.> UC09 : <<include>>
+
+UC02 .down.> UC03 : <<include>>
+UC02 .down.> UC04 : <<include>>
+UC02 .down.> UC06 : <<include>>
+UC04 .down.> UC11 : <<include>>
+UC07 .down.> UC10 : <<include>>
+UC07 .down.> UC12 : <<include>>
+UC08 .down.> UC10 : <<include>>
+UC08 .down.> UC12 : <<include>>
+
+@enduml

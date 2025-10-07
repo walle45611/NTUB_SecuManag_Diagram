@@ -5,7 +5,7 @@ left to right direction
 actor 使用者
 
 package "風險" {
-    usecase "檢查權限" as UC13
+    usecase "檢查權限" as UC15
     usecase "顯示風險清單" as UC1
     usecase "檢視欄位（ID、資產類別、資產名稱、威脅名稱、弱點名稱、風險值）" as UC2
     usecase "選擇每頁顯示筆數" as UC3
@@ -16,19 +16,23 @@ package "風險" {
     usecase "＋匯入風險" as UC10
     usecase "手動建立核准項目" as UC11
     usecase "自動建立多個核准項目" as UC12
+    usecase "設定處理策略、追蹤週期" as UC13
+    usecase "更新風險資料與建立對應派工任務" as UC14
 }
 
-使用者 --> UC13
-UC13 .down.> UC1 : <<include>>
-UC13 .down.> UC6 : <<include>>
-UC13 .down.> UC7 : <<include>>
-UC13 .down.> UC9 : <<include>>
-UC13 .down.> UC10 : <<include>>
+使用者 --> UC15
+UC15 .down.> UC1 : <<include>>
+UC15 .down.> UC6 : <<include>>
+UC15 .down.> UC7 : <<include>>
+UC15 .down.> UC9 : <<include>>
+UC15 .down.> UC10 : <<include>>
+UC15 .down.> UC13 : <<include>>
 
 UC1 .down.> UC4 : <<include>>
 UC6 .down.> UC11 : <<include>>
 UC7 .down.> UC11 : <<include>>
 UC9 .down.> UC11 : <<include>>
 UC10 .down.> UC12 : <<include>>
+UC13 .down.> UC14 : <<include>>
 
 @enduml

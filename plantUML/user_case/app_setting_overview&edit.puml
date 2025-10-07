@@ -1,0 +1,29 @@
+@startuml app_setting_overview
+
+left to right direction
+
+actor 使用者
+
+package "應用程式設定" {
+    usecase "檢查權限" as UC01
+    usecase "版本導覽（切換版本、版本樹、鎖定）" as UC02
+    usecase "維護系統資訊（網域、聯絡信箱、MinIO、OAuth、SMTP）" as UC03
+    usecase "切換密碼可視狀態" as UC04
+    usecase "Logo 管理（上傳、預覽）" as UC05
+    usecase "審核模板管理（新增/編輯/刪除、簽核人/期限）" as UC06
+    usecase "儲存並提交審核（完成後自動刷新最新）" as UC07
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC01 .down.> UC03 : <<include>>
+UC01 .down.> UC05 : <<include>>
+UC01 .down.> UC06 : <<include>>
+
+UC03 .down.> UC04 : <<include>>
+UC02 .down.> UC07 : <<include>>
+UC03 .down.> UC07 : <<include>>
+UC05 .down.> UC07 : <<include>>
+UC06 .down.> UC07 : <<include>>
+
+@enduml
