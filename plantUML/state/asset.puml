@@ -5,23 +5,23 @@ hide empty description
 [*] --> Draft : 開啟「新增資產」頁面
 state "草稿(Draft)" as Draft <<draft>>
 
-Draft --> PendingApproval : 送出建立資產\nPOST /api/isms/asset/\n→ 同步產生核准請求
+Draft --> PendingApproval : 送出建立資產\nPOST /api/isms/asset/\n→ 暫存 domain 物件含版本資料\n→ publish_create_event
 state "待核准(PendingApproval)" as PendingApproval <<approval>>
 
 PendingApproval --> Approved : approval_completed
-PendingApproval --> Rejected : approval_rejected
+PendingApproval --> Rejected : approval_rejected\n→ Worker 清理相關聯資料
 state "已拒絕(Rejected)" as Rejected <<terminal>>
 
 Rejected --> Draft : 使用者調整後再次送審
 
 state "已核准(Approved)" as Approved <<approval>>
-Approved --> Active : Backend 寫入資產資料\nINSERT INTO asset
+Approved --> Active : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ INSERT INTO asset
 
 state "啟用中(Active)" as Active <<active>> {
   [*] --> InUse
   state InUse as "使用中"
 
-  InUse --> Editing : 編輯自訂欄位\nPUT /api/isms/asset-settings
+  InUse --> Editing : 編輯資產資料\nPUT /api/isms/asset/{id}
   state Editing as "編輯中"
   Editing --> InUse : 儲存成功
 }

@@ -1,40 +1,113 @@
 @startuml
-node "Browser" 
+!theme plain
+skinparam linetype ortho
+skinparam nodesep 150
+skinparam ranksep 120
+skinparam minlen 2
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+skinparam shadowing false
+
+top to bottom direction
+
+node "Browser" as Browser
 
 node "Kubernetes Cluster" <<Cluster>> {
-  package "Ingress-Controller Namespace" <<Namespace>> {
+  
+  ' Ingress Layer - 最上層
+  package "Ingress-Controller Namespace" <<Namespace>> as IngressNS {
     node "ingress-nginx" <<Pod>> as IngressController {
       component "nginx Ingress Controller"
     }
   }
-  package "ntub-secumanage Namespace" <<Namespace>> {
-    node "frontend-pod" <<Pod>> as FE {
-      component "nginx"
-      artifact "dist/\n(static files)"
+  
+  package "ntub-secumanage Namespace" <<Namespace>> as AppNS {
+    
+    ' Application Layer - 第二層
+    rectangle "Application Layer" as AppLayer {
+      node "frontend-pod" <<Pod>> as FE {
+        component "nginx"
+        artifact "dist/\n(static files)"
+      }
+      
+      node "backend-pod" <<Pod>> as BE {
+        component "Python App"
+      }
     }
-    node "backend-pod" <<Pod>> as BE {
-      component "Python App"
+    
+    ' Service Layer - 第三層
+    rectangle "Service Layer" as ServiceLayer {
+      node "ollama-pod" <<Pod>> as OL {
+        component "Ollama LLM Server\n(HTTP API)"
+      }
+      
+      node "rabbitmq-server-pod" <<Pod>> as RMQS {
+        component "RabbitMQ Server\n(AMQP Broker + Management)"
+      }
+      
+      node "rabbitmq-pod" <<Pod>> as RMQ {
+        component "RabbitMQ Worker\n(Message Consumer)"
+      }
     }
-    node "postgresql-pod" <<Pod>> as DB {
-      database "PostgreSQL\n(TCP:5432)"
+    
+    ' Data Layer - 第四層
+    rectangle "Data Layer" as DataLayer {
+      node "postgresql-pod" <<Pod>> as DB {
+        database "PostgreSQL\n(TCP:5432)"
+      }
+      
+      node "minio-pod" <<Pod>> as S3 {
+        storage "MinIO\n(S3 API)"
+      }
     }
-    node "minio-pod" <<Pod>> as S3 {
-      storage "MinIO\n(S3 API)"
-    }
-    node "rabbitmq-pod" <<Pod>> as RMQ {
-      component "RabbitMQ Client\n(Consumer)"
-    }
-    node "rabbitmq-server-pod" <<Pod>> as RMQS {
-      component "RabbitMQ Server\n(AMQP Broker)"
+    
+    ' Support Layer - 最底層
+    rectangle "Support Layer" as SupportLayer {
+      node "scheduler-pod" <<Pod>> as SCH {
+        component "Scheduler\n(Python Cron Jobs)"
+      }
+      
+      node "alloy-pod" <<Pod>> as AL {
+        component "Grafana Alloy\n(Observability Agent)"
+      }
     }
   }
 }
 
-Browser --> IngressController : HTTP/HTTPS
-IngressController --> FE   : HTTP/HTTPS
-FE               --> BE   : REST API
-BE               --> DB   : TCP:5432
-BE               --> S3   : S3 API
-BE               --> RMQ  : AMQP (publish/consume)
-BE               --> RMQS : AMQP (broker)
+' === 外部流量 ===
+Browser -down-> IngressController : HTTP/HTTPS
+
+' === Ingress 路由 ===
+IngressController -down-> FE : /app
+IngressController -down-> BE : /api
+
+' === 應用層內部連線 ===
+FE -right-> BE : internal
+
+' === Backend 對外連線 ===
+BE -down-> DB : TCP:5432\n(SQL queries)
+BE -down-> S3 : S3 API\n(file storage)
+BE -down-> OL : HTTP:11434\n(AI inference)
+BE -down-> RMQS : AMQP:5672\n(publish)
+
+' === RabbitMQ 內部連線 ===
+RMQS -right-> RMQ : AMQP
+
+' === RabbitMQ Worker 連線 ===
+RMQ -down-> DB : TCP:5432\n(process data)
+RMQ -down-> S3 : S3 API\n(file processing)
+
+' === Scheduler 連線 ===
+SCH -up-> DB : TCP:5432\n(scheduled tasks)
+SCH -up-> RMQS : AMQP:5672\n(trigger jobs)
+
+' === Monitoring 連線 ===
+AL -up-> DB : TCP:5432\n(metrics)
+AL -up-> BE : HTTP:8000\n(app metrics)
+AL -left-> SCH : monitor
+
+' === 層級排列 ===
+AppLayer -[hidden]down- ServiceLayer
+ServiceLayer -[hidden]down- DataLayer
+DataLayer -[hidden]down- SupportLayer
 @enduml

@@ -2,27 +2,34 @@
 
 hide empty description
 
-[*] --> Draft : 使用者開「新增風險」頁
+[*] --> Draft : 使用者開啟「新增風險」頁面
 state "草稿\n(Draft)" as Draft <<draft>>
 
-Draft --> PendingApproval : POST /risk/ + 送 Approval
+Draft --> PendingApproval : 送出建立風險\nPOST /api/isms/risk/\n→ 暫存 domain 物件含版本資料\n→ publish_create_event
 state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
 
 PendingApproval --> Approved  : approval_completed
-PendingApproval --> Rejected  : approval_rejected
+PendingApproval --> Rejected  : approval_rejected\n→ Worker 清理相關聯資料
 state "被退回\n(Rejected)" as Rejected <<error>>
 Rejected --> Draft : 編輯後重新送審
 
 state "已核准\n(Approved)" as Approved <<approval>>
-Approved --> Calculating : 取得 Asset Setting\n→ 套公式計算
+Approved --> Calculating : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ INSERT INTO risk\n→ 取得 Asset Setting
 state "計算中\n(Calculating)" as Calculating <<calc>>
 
-Calculating --> Active : 儲存 Risk Result
-state "已生效\n(Active)" as Active <<active>>
+Calculating --> Active : Service 套公式計算完成\n→ 儲存 Risk Result
+state "已生效\n(Active)" as Active <<active>> {
+  [*] --> InUse
+  state "使用中\n(In-Use)" as InUse
 
-Active --> Displaying : GET /risk/{asset_id}/force-directed
-state "顯示中\n(Displaying)" as Displaying <<display>>
-Displaying --> Active : 關閉視圖
+  InUse --> Displaying : GET /api/isms/risk/{asset_id}/force-directed
+  state "顯示中\n(Displaying)" as Displaying <<display>>
+  Displaying --> InUse : 關閉視圖
+
+  InUse --> Tracking : PUT /api/isms/risk/{risk-id}/treatment\n→ publish_update_event(風險暫存資料)\nPOST /api/system/work-assignment/\n→ 建立派工資料
+  state "追蹤中\n(Tracking)" as Tracking
+  Tracking --> InUse : 工作派工完成
+}
 
 Active --> Archived : 封存文件
 state "已封存\n(Archived)" as Archived <<terminal>>

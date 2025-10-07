@@ -1,3 +1,4 @@
+@startuml rabbitmq-package
 package "RabbitMQ" as RQ {
   package "app" as RQ_APP {
     package "adapter" as RQ_AD
@@ -7,3 +8,4 @@ package "RabbitMQ" as RQ {
     package "utils" as RQ_UTILS
   }
 }
+@enduml

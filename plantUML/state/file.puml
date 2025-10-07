@@ -2,24 +2,32 @@
 
 hide empty description
 
-[*] --> Init : 使用者挑檔案
-state "建立中\n(Init)" as Init <<inprogress>>
+[*] --> Selected : 使用者選擇檔案
 
-Init --> Uploading : POST /uploadfile_entity\n(寫入 DB)
+state "已選擇\n(Selected)" as Selected <<ready>>
+Selected --> Uploading : POST /api/system/uploadfile_entity/file
+
 state "上傳中\n(Uploading)" as Uploading <<inprogress>>
-
-Uploading --> Stored : PUT 檔案至 MinIO\n→ 成功
+Uploading --> Storing : 上傳至 MinIO 成功
 Uploading --> Failed : 上傳失敗
+
+state "儲存中\n(Storing)" as Storing <<inprogress>>
+Storing --> Stored : INSERT uploadfile_entity 成功
+Storing --> Failed : 寫入 DB 失敗
+
 state "上傳失敗\n(Failed)" as Failed <<error>>
-Failed --> Uploading : 重新嘗試上傳
+Failed --> Selected : 重新選擇檔案
 
 state "已儲存\n(Stored)" as Stored <<stored>>
 
-Stored --> Available : 前端要求預覽\nGET /document/{id}\n→ 產生預簽名 URL
-state "可預覽\n(Available)" as Available <<ready>>
+Stored --> Generating : GET /api/system/document/{document_id}
+state "生成 URL 中\n(Generating)" as Generating <<inprogress>>
+Generating --> Available : 取得 Record 並生成預簽名 URL
 
+state "可預覽\n(Available)" as Available <<ready>>
 Available --> Previewing : 使用者開啟 URL
+
 state "預覽中\n(Previewing)" as Previewing <<preview>>
-Previewing --> Available : 關閉預覽頁
+Previewing --> Stored : 關閉預覽頁
 
 @enduml
