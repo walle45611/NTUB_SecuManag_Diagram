@@ -1,0 +1,25 @@
+@startuml
+title 修改應用程式設定
+start
+
+:載入可編輯的最新版本設定頁;
+
+partition "使用者互動" {
+
+    fork
+        :維護系統資訊（網域、聯絡信箱、MinIO、OAuth、SMTP）;
+        if (需要查看密碼?) then (是)
+            :切換密碼欄位為可視狀態;
+        endif
+    fork again
+        if (點選編輯按鈕?) then (是)
+            :開啟編輯 app_setting 介面;
+            :修改 app_setting 資訊（網域、聯絡信箱、MinIO、OAuth、SMTP）;
+            :自動寫入建立時間;
+            :儲存變更;
+        endif
+    end fork
+}
+
+stop
+@enduml

@@ -1,0 +1,32 @@
+@startuml audit_overview
+
+left to right direction
+
+actor 使用者
+
+package "稽核管理" {
+    usecase "檢查權限" as UC01
+    usecase "顯示稽核清單" as UC02
+    usecase "檢視欄位（標題、描述、狀態、佐證資料數量、建立時間）" as UC03
+    usecase "搜尋與分頁" as UC04
+    usecase "建立稽核（走審核）" as UC05
+    usecase "刪除稽核（走審核）" as UC06
+    usecase "進入編輯頁（樹狀）" as UC07
+    usecase "管理節點與佐證（附件預覽、自評/委員）" as UC08
+    usecase "版本導覽（切換、版本樹、鎖定）" as UC09
+    usecase "儲存變更（走審核）" as UC10
+}
+
+使用者 --> UC01
+UC01 .down.> UC02 : <<include>>
+UC01 .down.> UC05 : <<include>>
+UC01 .down.> UC06 : <<include>>
+UC01 .down.> UC07 : <<include>>
+
+UC02 .down.> UC03 : <<include>>
+UC02 .down.> UC04 : <<include>>
+UC07 .down.> UC08 : <<include>>
+UC07 .down.> UC09 : <<include>>
+UC07 .down.> UC10 : <<include>>
+
+@enduml
