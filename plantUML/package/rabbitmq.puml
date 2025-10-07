@@ -1,11 +1,20 @@
-@startuml rabbitmq-package
-package "RabbitMQ" as RQ {
-  package "app" as RQ_APP {
-    package "adapter" as RQ_AD
-    package "infrastructure" as RQ_INFRA
-    package "repositories" as RQ_REPO
-    package "services" as RQ_SVC
-    package "utils" as RQ_UTILS
+@startuml
+' Package diagram for rabbitmq/ directory (up to two levels)
+package "rabbitmq" {
+  package "app" {
+    package "adapter" {}
+    package "core" {}
+    package "domain" {}
+    package "infrastructure" {}
+    package "repositories" {}
+    package "services" {}
+    package "untils" {}
+  }
+
+  package "tests" {
+    package "fixtures" {}
+    package "mocks" {}
+    package "unit" {}
   }
 }
 @enduml

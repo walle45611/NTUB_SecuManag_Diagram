@@ -1,14 +1,19 @@
-@startuml backend-package
-package "Backend" as BE {
-  package "app" as APP {
-    package "adapters" as AD {
-      package "inbound.api.endpoints" as IAE
-      package "outbound" as OUT
-    }
-    package "application" as APPLICATION
-    package "domain" as DOM
-    package "framework" as FR
+@startuml
+' Package diagram for backend/ directory (up to two levels)
+package "backend" {
+  package "app" {
+    package "adapters" {}
+    package "application" {}
+    package "domain" {}
+    package "framework" {}
   }
-  package "tests" as TS
+
+  package "tests" {
+    package "fixtures" {}
+    package "integration" {}
+    package "mocks" {}
+    package "unit" {}
+    package "utils" {}
+  }
 }
 @enduml

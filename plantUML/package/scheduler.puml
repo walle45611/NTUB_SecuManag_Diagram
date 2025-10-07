@@ -1,22 +1,20 @@
-@startuml scheduler-package
-package "Scheduler" as SCH {
-  package "app" as SCH_APP {
-    package "adapter" as SCH_AD
-    package "domain" as SCH_DOM {
-      package "value_objects" as SCH_VO
-    }
-    package "infrastructure" as SCH_INFRA {
-      package "core" as SCH_CORE
-      package "security" as SCH_SEC
-      package "scheduler" as SCH_SCHED
-      package "email_template" as SCH_EMAIL
-    }
-    package "repositories" as SCH_REPO
-    package "services" as SCH_SVC {
-      package "notification" as SCH_NOTIF
-      package "expired" as SCH_EXP
-    }
-    package "utils" as SCH_UTILS
+@startuml
+' Package diagram for scheduler/ directory (up to two levels)
+package "scheduler" {
+  package "app" {
+    package "adapter" {}
+    package "domain" {}
+    package "infrastructure" {}
+    package "repositories" {}
+    package "services" {}
+    package "utils" {}
+  }
+
+  package "tests" {
+    package "fixtures" {}
+    package "integration" {}
+    package "mocks" {}
+    package "unit" {}
   }
 }
 @enduml
