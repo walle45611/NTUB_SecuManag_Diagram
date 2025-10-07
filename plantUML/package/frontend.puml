@@ -1,3 +1,4 @@
+@startuml frontend-package
 package "Frontend" as FE {
   package "src" as SRC {
     package "components" as COMP
@@ -7,3 +8,4 @@ package "Frontend" as FE {
     package "utils" as UTILS
   }
 }
+@enduml
