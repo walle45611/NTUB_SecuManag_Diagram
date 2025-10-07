@@ -2,14 +2,14 @@
 
 hide empty description
 
-[*] --> Draft : 使用者點擊「編輯資產設定」\nGET /asset-setting/
+[*] --> Draft : 使用者點擊「編輯資產設定」\nGET /api/isms/isms-setting/
 state "草稿\n(Draft)" as Draft <<draft>>
 
-Draft --> PendingApproval : 保存設定\nPOST /asset-setting/update\n→ 同步送 Approval
+Draft --> PendingApproval : 保存設定\nPOST /api/isms/isms-setting/\n→ 暫存 domain 物件含版本資料\n→ publish_create_event
 state "待核准\n(Pending Approval)" as PendingApproval <<approval>>
 
 PendingApproval --> Approved : approval_completed
-PendingApproval --> Rejected : approval_rejected
+PendingApproval --> Rejected : approval_rejected\n→ Worker 清理相關聯資料
 state "被退回\n(Rejected)" as Rejected <<terminal>>
 Rejected --> Draft : 再次編輯後重新送審
 
@@ -24,7 +24,7 @@ state "啟用中\n(Active)" as Active <<active>> {
   Recalculating --> InUse : Service 計算完成
 }
 
-Approved --> Active : Backend 更新 DB\n→ 觸發 Service 重算
+Approved --> Active : Worker 處理 approval.completed 訊息\n→ 修改資料狀態並進行文件歸檔\n→ UPDATE isms_setting\n→ 觸發 Service 重算風險
 
 Active --> Archived : 停用設定並將文件封存
 state "已封存\n(Archived)" as Archived <<terminal>>

@@ -3,20 +3,54 @@
 left to right direction
 hide empty description
 
-[*] --> Approval_process: 發送核准請求
-state Approval_process{
-  [*] --> Pending: 等待核准
-  Pending --> Approval_process: 請求上級核准
-  Pending --> Rejected: 核准拒絕
-  Pending --> Approved_complete: 核准流程完成
-  Pending --> Overdue: 核准逾期
-  Rejected --> [*]: 流程結束，簽核退回
+[*] --> Draft: 建立核准請求
+
+state "核准流程" as ApprovalFlow {
+  Draft --> PendingReview: 發送至第一位核准者
+
+  state PendingReview {
+    [*] --> WaitingApproval: 等待當前核准者處理
+
+    state WaitingApproval {
+      [*] --> Normal: 正常等待
+      Normal --> FirstOverdue: TTL 逾時
+      FirstOverdue --> SecondOverdue: 再次逾時
+    }
+
+    WaitingApproval --> Approved: 核准通過
+    WaitingApproval --> Rejected: 核准拒絕
+  }
+
+  Approved --> CheckNextReviewer: 檢查是否有下一位審核者
+
+  state CheckNextReviewer <<choice>>
+  CheckNextReviewer --> PendingReview: 有下一位審核者
+  CheckNextReviewer --> Completed: 所有審核者完成
+
+  Rejected --> RejectedFinal: 拒絕流程
 }
-state Overdue{
-  [*] --> Call_approval: 通知逾期
-  Call_approval--> Overdue: 再次逾期
-  Overdue --> Call_approval: 向上級發送信件
-  Overdue --> Approval_process: 再次進入簽核流程
+
+state "逾期處理" as OverdueHandling {
+  FirstOverdue --> SendReminder: 發送催繳提醒給當前核准者
+  SendReminder --> WaitingApproval: 返回等待
+
+  SecondOverdue --> EscalateToSupervisor: 升級給上級核准者
+  EscalateToSupervisor --> WaitingApproval: 返回等待
 }
-Approved_complete --> [*]: 流程結束，簽核完成
+
+Completed --> [*]: 簽核完成
+RejectedFinal --> [*]: 簽核拒絕
+
+note right of PendingReview
+  每位核准者都會經歷：
+  1. 等待處理
+  2. 可能逾期提醒
+  3. 核准/拒絕決策
+end note
+
+note right of CheckNextReviewer
+  系統查詢是否還有
+  待審核者列表
+end note
+
 @enduml
